@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="MoleHunt">
+    <output-path>$PROJECT_DIR$/out/artifacts/MoleHunt</output-path>
+    <root id="archive" name="MoleHunt.jar">
+      <element id="module-output" name="MoleHunt" />
+      <element id="file-copy" path="$PROJECT_DIR$/src/plugin.yml" />
+    </root>
+  </artifact>
+</component>
