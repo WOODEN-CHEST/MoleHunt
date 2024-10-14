@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="ProtocolLib">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../../../Java/Minecraft server API/ProtocolLib" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="file://$PROJECT_DIR$/../../../Java/Minecraft server API/ProtocolLib" recursive="false" />
+  </library>
+</component>

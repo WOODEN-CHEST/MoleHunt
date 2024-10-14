@@ -7,9 +7,10 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="1.21" level="project" />
+    <orderEntry type="library" name="1.21.1" level="project" />
     <orderEntry type="library" name="adventure-api-4.17.0" level="project" />
-    <orderEntry type="library" name="ProtocolLib" level="project" />
     <orderEntry type="library" name="SimpleVoiceChat" level="project" />
+    <orderEntry type="library" name="ProtocolLib" level="project" />
+    <orderEntry type="library" name="PluginCommon" level="project" />
   </component>
 </module>

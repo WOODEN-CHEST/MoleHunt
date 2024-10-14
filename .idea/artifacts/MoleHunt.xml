@@ -3,7 +3,8 @@
     <output-path>$PROJECT_DIR$/out/artifacts/MoleHunt</output-path>
     <root id="archive" name="MoleHunt.jar">
       <element id="module-output" name="MoleHunt" />
-      <element id="file-copy" path="$PROJECT_DIR$/src/plugin.yml" />
+      <element id="file-copy" path="$PROJECT_DIR$/plugin.yml" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../PluginCommon/out/artifacts/PluginCommon/PluginCommon.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>
