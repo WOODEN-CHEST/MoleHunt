@@ -7,6 +7,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+import sus.keiger.plugincommon.player.actionbar.ActionbarContainer;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
 
 import java.util.Objects;
@@ -16,6 +17,7 @@ public class MoleHuntPlayer implements IServerPlayer
 {
     // Private fields.
     private final Player _mcPlayer;
+    private final ActionbarContainer _actionbar = new ActionbarContainer();
 
 
     // Constructors.
@@ -29,73 +31,77 @@ public class MoleHuntPlayer implements IServerPlayer
     @Override
     public Player GetMCPlayer()
     {
-        return null;
+        return _mcPlayer;
     }
 
     @Override
     public UUID GetUUID()
     {
-        return null;
+        return _mcPlayer.getUniqueId();
     }
 
     @Override
     public String GetName()
     {
-        return "";
+        return _mcPlayer.getName();
     }
 
     @Override
     public boolean IsOnline()
     {
-        return false;
+        return _mcPlayer.isConnected();
     }
 
     @Override
     public boolean IsAdmin()
     {
-        return false;
+        return _mcPlayer.isOp();
     }
 
     @Override
     public void ShowTitle(Title title)
     {
-
+        _mcPlayer.showTitle(Objects.requireNonNull(title, "title is null"));
     }
 
     @Override
     public void ClearTitle()
     {
-
+        _mcPlayer.clearTitle();
     }
 
     @Override
     public void ShowActionbar(ActionbarMessage message)
     {
-
+        _actionbar.AddMessage(Objects.requireNonNull(message, "message is null"));
     }
 
     @Override
     public void RemoveActionbar(long id)
     {
-
+        _actionbar.RemoveMessage(id);
     }
 
     @Override
     public void ClearActionbar()
     {
-
+        _actionbar.ClearMessages();
     }
 
     @Override
     public void PlaySound(Sound sound, Location location, SoundCategory category, float volume, float pitch)
     {
+        Objects.requireNonNull(sound, "sound is null");
+        Objects.requireNonNull(location, "location is null");
+        Objects.requireNonNull(category, "category is null");
 
+        _mcPlayer.playSound(location, sound, category, volume, pitch);
     }
 
     @Override
     public void SendMessage(Component message)
     {
-
+        _mcPlayer.sendMessage(Objects.requireNonNull(message, "message is null"));
     }
 
     @Override
@@ -108,12 +114,15 @@ public class MoleHuntPlayer implements IServerPlayer
                                   double extra,
                                   T data)
     {
+        Objects.requireNonNull(particle, "particle is null");
+        Objects.requireNonNull(location, "location is null");
 
+        _mcPlayer.spawnParticle(particle, location, count, deltaX, deltaY, deltaZ, extra, data);
     }
 
     @Override
     public void Tick()
     {
-
+        _actionbar.Tick(_mcPlayer);
     }
 }

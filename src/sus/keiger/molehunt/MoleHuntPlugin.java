@@ -7,10 +7,13 @@ import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
 import sus.keiger.molehunt.event.*;
+import sus.keiger.molehunt.game.MoleHuntSettings;
 import sus.keiger.molehunt.lobby.*;
 import sus.keiger.molehunt.player.DefaultServerPlayerCollection;
 import sus.keiger.molehunt.player.*;
+import sus.keiger.plugincommon.IIDProvider;
 import sus.keiger.plugincommon.ITickable;
+import sus.keiger.plugincommon.SequentialIDProvider;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
 
 import java.text.DecimalFormat;
@@ -68,27 +71,32 @@ public class MoleHuntPlugin extends JavaPlugin
     {
         // Create core objects.
         IWorldProvider WorldProvider = new DefaultWorldProvider();
-
-        IEventDispatcher EventDispatcher = new DefaultEventDispatcher();
+        IServerPlayerCollection Players = new DefaultServerPlayerCollection();
+        IIDProvider GameIDProvider = new SequentialIDProvider();
         PCGamePacketController PacketController = new PCGamePacketController(
                 this, ProtocolLibrary.getProtocolManager());
 
-        IServerPlayerCollection Players = new DefaultServerPlayerCollection();
-        IPlayerExistenceController ExistenceController = new PlayerExistenceController(Players);
-
 
         // Create server components.
+        IEventDispatcher EventDispatcher = new DefaultEventDispatcher(Players);
+        IPlayerExistenceController ExistenceController = new PlayerExistenceController(Players);
+
         IServerLobby Lobby = CreateLobby(WorldProvider, Players, EventDispatcher);
-        Lobby.SubscribeToEvents(EventDispatcher);
+
+        IPlayerStateController PlayerStateController = new DefaultPlayerStateController(
+                Players, new MoleHuntSettings(), Lobby);
 
 
         // Initialize created components and objects.
         InitializeWorlds(WorldProvider);
         ExistenceController.SubscribeToEvents(EventDispatcher);
+        PlayerStateController.SubscribeToEvents(EventDispatcher);
+        Lobby.SubscribeToEvents(EventDispatcher);
         Bukkit.getPluginManager().registerEvents(EventDispatcher, this);
         PacketController.StartListeningForPackets();
+        ExistenceController.ReloadPlayers();
 
-        List<ITickable> Tickables = List.of(ExistenceController, Lobby);
+        List<ITickable> Tickables = List.of(ExistenceController, Lobby, PlayerStateController);
         EventDispatcher.GetTickStartEvent().Subscribe(this, event -> Tickables.forEach(ITickable::Tick));
     }
 

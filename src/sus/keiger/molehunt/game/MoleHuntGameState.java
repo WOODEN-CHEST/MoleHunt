@@ -5,6 +5,6 @@ public enum MoleHuntGameState
     Lobby,
     PreStart,
     InGame,
-    PostGame,
+    PostEnd,
     Complete
 }

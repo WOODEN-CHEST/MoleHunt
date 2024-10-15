@@ -35,6 +35,7 @@ public class PlayerExistenceController implements IPlayerExistenceController
 
     private void OnPlayerQuitEvent(PlayerQuitEvent event)
     {
+        event.quitMessage(null);
         IServerPlayer TargetPlayer = _players.GetPlayer(event.getPlayer());
         if (TargetPlayer != null)
         {
@@ -48,12 +49,14 @@ public class PlayerExistenceController implements IPlayerExistenceController
     public void SubscribeToEvents(IEventDispatcher dispatcher)
     {
         dispatcher.GetPlayerJoinEvent().Subscribe(this, this::OnPlayerJoinEvent, Integer.MAX_VALUE);
+        dispatcher.GetPlayerQuitEvent().Subscribe(this, this::OnPlayerQuitEvent, Integer.MAX_VALUE);
     }
 
     @Override
     public void UnsubscribeFromEvents(IEventDispatcher dispatcher)
     {
-        dispatcher.GetPlayerQuitEvent().Subscribe(this, this::OnPlayerQuitEvent, Integer.MIN_VALUE);
+        dispatcher.GetPlayerJoinEvent().Unsubscribe(this);
+        dispatcher.GetPlayerQuitEvent().Unsubscribe(this);
     }
 
     @Override

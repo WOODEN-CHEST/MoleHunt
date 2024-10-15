@@ -5,12 +5,18 @@ import io.papermc.paper.event.player.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
+import sus.keiger.molehunt.player.IServerPlayerCollection;
 import sus.keiger.plugincommon.PCPluginEvent;
+
+import java.util.Objects;
 
 public class DefaultEventDispatcher implements IEventDispatcher
 {
     // Private fields.
+    private final IServerPlayerCollection _players;
+
     private final PCPluginEvent<ServerTickStartEvent> _serverTickStartEvent = new PCPluginEvent<>();
     private final PCPluginEvent<PlayerJoinEvent> _playerJoinEvent = new PCPluginEvent<>();
     private final PCPluginEvent<PlayerQuitEvent> _playerQuitEvent = new PCPluginEvent<>();
@@ -24,6 +30,15 @@ public class DefaultEventDispatcher implements IEventDispatcher
     private final PCPluginEvent<PlayerCommandPreprocessEvent> _playerCommandPreprocessEvent = new PCPluginEvent<>();
     private final PCPluginEvent<EntityDeathEvent> _entityDeathEvent = new PCPluginEvent<>();
     private final PCPluginEvent<PlayerDropItemEvent> _playerDropItemEvent = new PCPluginEvent<>();
+    private final PCPluginEvent<PrePlayerAttackEntityEvent> _prePlayerAttackEntityEvent = new PCPluginEvent<>();
+    private final PCPluginEvent<InventoryOpenEvent> _inventoryOpenEvent = new PCPluginEvent<>();
+
+
+    // Constructors.
+    public DefaultEventDispatcher(IServerPlayerCollection playerCollection)
+    {
+        _players = Objects.requireNonNull(playerCollection, "playerCollection is null");
+    }
 
 
     // Private methods.
@@ -105,6 +120,18 @@ public class DefaultEventDispatcher implements IEventDispatcher
         _playerDropItemEvent.FireEvent(event);
     }
 
+    @EventHandler
+    private void OnPrePlayerAttackEntityEvent(PrePlayerAttackEntityEvent event)
+    {
+        _prePlayerAttackEntityEvent.FireEvent(event);
+    }
+
+    @EventHandler
+    private void OnInventoryOpenEvent(InventoryOpenEvent event)
+    {
+        _inventoryOpenEvent.FireEvent(event);
+    }
+
 
     // Inherited methods.
     @Override
@@ -180,9 +207,20 @@ public class DefaultEventDispatcher implements IEventDispatcher
     }
 
     @Override
+    public PCPluginEvent<PrePlayerAttackEntityEvent> GetPrePlayerAttackEntityEvent()
+    {
+        return _prePlayerAttackEntityEvent;
+    }
+
+    @Override
+    public PCPluginEvent<InventoryOpenEvent> GetInventoryOpenEvent()
+    {
+        return _inventoryOpenEvent;
+    }
+
+    @Override
     public PCPluginEvent<ServerTickStartEvent> GetTickStartEvent()
     {
         return _serverTickStartEvent;
     }
-
 }

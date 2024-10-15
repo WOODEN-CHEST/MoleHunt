@@ -1,5 +1,7 @@
 package sus.keiger.molehunt.lobby;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
+import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
@@ -9,8 +11,10 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.BoundingBox;
 import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.event.IMoleHuntEventListener;
@@ -67,11 +71,17 @@ public class LobbyPlayer implements ITickable, IAudienceMember, IMoleHuntEventLi
         MCPlayer.setInvisible(false);
         PlayerFunctions.ClearInventory(MCPlayer);
 
+        TeleportToLobby();
         SetPlayerInventory(MCPlayer);
     }
 
 
     // Private methods.
+    private void TeleportToLobby()
+    {
+        _serverPlayer.GetMCPlayer().teleport(_lobbySpawnLocation);
+    }
+
     private ItemStack CreateUnbreakableItem(Material material, int count)
     {
         ItemStack Item = new ItemStack(material, count);
@@ -82,7 +92,7 @@ public class LobbyPlayer implements ITickable, IAudienceMember, IMoleHuntEventLi
     private void SetPlayerInventory(Player mcPlayer)
     {
         ItemStack Sword = CreateUnbreakableItem(Material.DIAMOND_SWORD, 1);
-        ItemStack Axe = CreateUnbreakableItem(Material.DIAMOND_SWORD, 1);
+        ItemStack Axe = CreateUnbreakableItem(Material.IRON_AXE, 1);
         ItemStack Shield = CreateUnbreakableItem(Material.SHIELD, 1);
         ItemStack Helmet = CreateUnbreakableItem(Material.IRON_HELMET, 1);
         ItemStack Chestplate = CreateUnbreakableItem(Material.DIAMOND_CHESTPLATE, 1);
@@ -155,9 +165,25 @@ public class LobbyPlayer implements ITickable, IAudienceMember, IMoleHuntEventLi
         _serverPlayer.GetMCPlayer().teleport(_lobbySpawnLocation);
     }
 
-    private void OnPlayerDropItemEvent(PlayerDropItemEvent  event)
+    private void OnPlayerDropItemEvent(PlayerDropItemEvent event)
     {
         CancelEventIfNotAdmin(event, event.getPlayer());
+    }
+
+    private void OnPrePlayerAttackEntityEvent(PrePlayerAttackEntityEvent event)
+    {
+        if (!(event.getAttacked() instanceof Player))
+        {
+            CancelEventIfNotAdmin(event, event.getPlayer());
+        }
+    }
+
+    private void OnInventoryOpenEvent(InventoryOpenEvent event)
+    {
+        if ((event.getPlayer() instanceof Player TargetPlayer) && !(event.getInventory() instanceof PlayerInventory))
+        {
+            CancelEventIfNotAdmin(event, TargetPlayer);
+        }
     }
 
     private void EnsurePlayerInBounds()
@@ -169,7 +195,7 @@ public class LobbyPlayer implements ITickable, IAudienceMember, IMoleHuntEventLi
 
         if (!_lobbyBounds.contains(_serverPlayer.GetMCPlayer().getLocation().toVector()))
         {
-            _serverPlayer.GetMCPlayer().teleport(_lobbySpawnLocation);
+            TeleportToLobby();
             ShowActionbar(new ActionbarMessage(PCMath.SecondsToTicks(DEFAULT_ACTIONBAR_DURATION_SECONDS),
                     Component.text("Do not leave the lobby bounds").color(NamedTextColor.RED)));
         }
@@ -246,6 +272,8 @@ public class LobbyPlayer implements ITickable, IAudienceMember, IMoleHuntEventLi
         dispatcher.GetBlockBreakEvent().Subscribe(this, this::OnBlockBreakEvent);
         dispatcher.GetBlockPlaceEvent().Subscribe(this, this::OnBlockPlaceEvent);
         dispatcher.GetPlayerDeathEvent().Subscribe(this, this::OnPlayerDeathEvent);
+        dispatcher.GetPrePlayerAttackEntityEvent().Subscribe(this, this::OnPrePlayerAttackEntityEvent);
+        dispatcher.GetInventoryOpenEvent().Subscribe(this, this::OnInventoryOpenEvent);
     }
 
     @Override
@@ -255,5 +283,7 @@ public class LobbyPlayer implements ITickable, IAudienceMember, IMoleHuntEventLi
         dispatcher.GetBlockBreakEvent().Unsubscribe(this);
         dispatcher.GetBlockPlaceEvent().Unsubscribe(this);
         dispatcher.GetPlayerDeathEvent().Unsubscribe(this);
+        dispatcher.GetPrePlayerAttackEntityEvent().Unsubscribe(this);
+        dispatcher.GetInventoryOpenEvent().Unsubscribe(this);
     }
 }

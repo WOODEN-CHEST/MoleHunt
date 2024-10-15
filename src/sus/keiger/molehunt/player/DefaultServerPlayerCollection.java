@@ -13,7 +13,7 @@ public class DefaultServerPlayerCollection implements IServerPlayerCollection
 {
     // Private fields.
     private final Map<Player, IServerPlayer> _players = new IterationSafeMap<>();
-    private List<IServerPlayer> _playerCopy;
+    private List<IServerPlayer> _playerCopy = Collections.emptyList();
 
 
     // Inherited methods.

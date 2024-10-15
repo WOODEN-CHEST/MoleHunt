@@ -2,10 +2,7 @@ package sus.keiger.molehunt.game;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
+import org.bukkit.*;
 import sus.keiger.molehunt.player.IAudienceMember;
 import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
@@ -20,16 +17,20 @@ public class MoleHuntTeam implements IGameTeam
     // Private fields.
     private final Set<IServerPlayer> _players = new HashSet<>();
     private final GameTeamType _teamType;
+    private final Color _color;
+    private final String _name;
 
 
     // Constructors.
-    public MoleHuntTeam(GameTeamType teamType)
+    public MoleHuntTeam(GameTeamType teamType, Color color, String name)
     {
         _teamType = Objects.requireNonNull(teamType, "teamType is null");
+        _color = Objects.requireNonNull(color, "color is null");
+        _name = Objects.requireNonNull(name, "name is null");
     }
 
 
-    // Inhertied methods.
+    // Inherited methods.
     @Override
     public GameTeamType GetType()
     {
@@ -55,9 +56,27 @@ public class MoleHuntTeam implements IGameTeam
     }
 
     @Override
+    public List<IServerPlayer> GetPlayers()
+    {
+        return List.copyOf(_players);
+    }
+
+    @Override
     public boolean ContainsPlayer(IServerPlayer player)
     {
         return _players.contains(Objects.requireNonNull(player, "player is null"));
+    }
+
+    @Override
+    public Color GetColor()
+    {
+        return _color;
+    }
+
+    @Override
+    public String GetName()
+    {
+        return _name;
     }
 
     @Override

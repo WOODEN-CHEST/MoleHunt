@@ -16,6 +16,7 @@ public class MoleHuntSettings
     private int _borderShrinkStartTimeTicks = PCMath.SecondsToTicks(60d * 10d);
     private int _spellCastCooldownTicks = PCMath.SecondsToTicks(45);
     private boolean _canCastSpells = true;
+    private boolean _isNotifiedOnSpellCast = true;
 
 
     // Constructors.
@@ -134,5 +135,15 @@ public class MoleHuntSettings
     public void SetCanCastSpells(boolean value)
     {
         _canCastSpells = value;
+    }
+
+    public boolean GetIsNotifiedOnSpellCast()
+    {
+        return _isNotifiedOnSpellCast;
+    }
+
+    public void SetIsNotifiedOnSpellCast(boolean value)
+    {
+        _isNotifiedOnSpellCast = value;
     }
 }

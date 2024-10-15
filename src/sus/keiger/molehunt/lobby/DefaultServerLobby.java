@@ -1,6 +1,9 @@
 package sus.keiger.molehunt.lobby;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.util.BoundingBox;
@@ -34,6 +37,35 @@ public class DefaultServerLobby implements IServerLobby
         _spawnLocation = Objects.requireNonNull(spawnLocation, "spawnLocation is null");
         _lobbyBounds = Objects.requireNonNull(bounds, "bounds is null");
         _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
+    }
+
+
+    // Private methods.
+    private void SendPlayerMessage(String message, IServerPlayer sender)
+    {
+        if (sender.IsAdmin())
+        {
+            SendMessage(Component.text("[Host] ").color(NamedTextColor.DARK_PURPLE).append(Component.text("<%s> %s"
+                            .formatted(sender.GetName(), message))
+                    .color(NamedTextColor.LIGHT_PURPLE)));
+        }
+        else
+        {
+            SendMessage(Component.text("<%s> %s".formatted(sender.GetName(), message)));
+        }
+    }
+
+    private void OnAsyncChatEvent(AsyncChatEvent event)
+    {
+        IServerPlayer PlayerWhoChatted = _serverPlayerCollection.GetPlayer(event.getPlayer());
+        if (!_players.containsKey(PlayerWhoChatted))
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+        SendPlayerMessage(PlainTextComponentSerializer.plainText().serialize(event.originalMessage()),
+                PlayerWhoChatted);
     }
 
 
@@ -81,10 +113,16 @@ public class DefaultServerLobby implements IServerLobby
     }
 
     @Override
-    public void SubscribeToEvents(IEventDispatcher dispatcher) { }
+    public void SubscribeToEvents(IEventDispatcher dispatcher)
+    {
+        dispatcher.GetAsyncChatEvent().Subscribe(this, this::OnAsyncChatEvent);
+    }
 
     @Override
-    public void UnsubscribeFromEvents(IEventDispatcher dispatcher) { }
+    public void UnsubscribeFromEvents(IEventDispatcher dispatcher)
+    {
+        dispatcher.GetAsyncChatEvent().Unsubscribe(this);
+    }
 
     @Override
     public List<? extends IAudienceMember> GetAudienceMembers()
