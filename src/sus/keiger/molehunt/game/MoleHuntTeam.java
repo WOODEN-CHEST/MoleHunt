@@ -3,6 +3,7 @@ package sus.keiger.molehunt.game;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
+import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.molehunt.player.IAudienceMember;
 import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
@@ -15,7 +16,7 @@ import java.util.Set;
 public class MoleHuntTeam implements IGameTeam
 {
     // Private fields.
-    private final Set<IServerPlayer> _players = new HashSet<>();
+    private final Set<IGamePlayer> _players = new HashSet<>();
     private final GameTeamType _teamType;
     private final Color _color;
     private final String _name;
@@ -38,13 +39,13 @@ public class MoleHuntTeam implements IGameTeam
     }
 
     @Override
-    public boolean AddPlayer(IServerPlayer player)
+    public boolean AddPlayer(IGamePlayer player)
     {
         return _players.add(Objects.requireNonNull(player, "player is null"));
     }
 
     @Override
-    public boolean RemovePlayer(IServerPlayer player)
+    public boolean RemovePlayer(IGamePlayer player)
     {
         return _players.remove(Objects.requireNonNull(player, "player is null"));
     }
@@ -56,13 +57,13 @@ public class MoleHuntTeam implements IGameTeam
     }
 
     @Override
-    public List<IServerPlayer> GetPlayers()
+    public List<IGamePlayer> GetPlayers()
     {
         return List.copyOf(_players);
     }
 
     @Override
-    public boolean ContainsPlayer(IServerPlayer player)
+    public boolean ContainsPlayer(IGamePlayer player)
     {
         return _players.contains(Objects.requireNonNull(player, "player is null"));
     }
@@ -94,7 +95,7 @@ public class MoleHuntTeam implements IGameTeam
     @Override
     public void ClearTitle()
     {
-        _players.forEach(IServerPlayer::ClearTitle);
+        _players.forEach(IAudienceMember::ClearTitle);
     }
 
     @Override
@@ -112,7 +113,7 @@ public class MoleHuntTeam implements IGameTeam
     @Override
     public void ClearActionbar()
     {
-        _players.forEach(IServerPlayer::ClearActionbar);
+        _players.forEach(IAudienceMember::ClearActionbar);
     }
 
     @Override

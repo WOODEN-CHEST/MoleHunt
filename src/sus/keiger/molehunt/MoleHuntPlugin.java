@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
+import sus.keiger.molehunt.command.MoleHuntCommand;
 import sus.keiger.molehunt.event.*;
 import sus.keiger.molehunt.game.MoleHuntSettings;
 import sus.keiger.molehunt.lobby.*;
@@ -14,6 +15,7 @@ import sus.keiger.molehunt.player.*;
 import sus.keiger.plugincommon.IIDProvider;
 import sus.keiger.plugincommon.ITickable;
 import sus.keiger.plugincommon.SequentialIDProvider;
+import sus.keiger.plugincommon.command.ServerCommand;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
 
 import java.text.DecimalFormat;
@@ -64,6 +66,13 @@ public class MoleHuntPlugin extends JavaPlugin
         return new DefaultServerLobby(players, SpawnLocation, Bounds, eventDispatcher);
     }
 
+    private void RegisterCommands(IPlayerStateController playerStateController)
+    {
+        ServerCommand Command = MoleHuntCommand.GetCommand(playerStateController);
+        Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setTabCompleter(Command);
+        Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setExecutor(Command);
+    }
+
 
     // Inherited methods.
     @Override
@@ -83,8 +92,8 @@ public class MoleHuntPlugin extends JavaPlugin
 
         IServerLobby Lobby = CreateLobby(WorldProvider, Players, EventDispatcher);
 
-        IPlayerStateController PlayerStateController = new DefaultPlayerStateController(
-                Players, new MoleHuntSettings(), Lobby);
+        IPlayerStateController PlayerStateController = new DefaultPlayerStateController(GameIDProvider,
+                PacketController, WorldProvider, EventDispatcher, Players, new MoleHuntSettings(), Lobby);
 
 
         // Initialize created components and objects.
@@ -98,6 +107,10 @@ public class MoleHuntPlugin extends JavaPlugin
 
         List<ITickable> Tickables = List.of(ExistenceController, Lobby, PlayerStateController);
         EventDispatcher.GetTickStartEvent().Subscribe(this, event -> Tickables.forEach(ITickable::Tick));
+
+
+        // Commands.
+        RegisterCommands(PlayerStateController);
     }
 
     @Override

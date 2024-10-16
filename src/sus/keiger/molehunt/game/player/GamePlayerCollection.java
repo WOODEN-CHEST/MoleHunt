@@ -9,6 +9,7 @@ import org.bukkit.SoundCategory;
 import sus.keiger.molehunt.player.IAudienceMember;
 import sus.keiger.molehunt.player.IAudienceMemberHolder;
 import sus.keiger.molehunt.player.IServerPlayer;
+import sus.keiger.plugincommon.IterationSafeMap;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
 
 import java.util.*;
@@ -17,73 +18,106 @@ import java.util.stream.Stream;
 public class GamePlayerCollection implements IAudienceMemberHolder
 {
     // Private fields.
-    private final Map<IServerPlayer, IGamePlayer> _players = new HashMap<>();
+    private final Map<IServerPlayer, IGamePlayer> _players = new IterationSafeMap<>();
     private final Set<IServerPlayer> _spectators = new HashSet<>();
     private List<IGamePlayer> _activePlayers = Collections.emptyList();
     private List<IServerPlayer> _participants = Collections.emptyList();
 
 
+    // Constructors.
+    public GamePlayerCollection()
+    {
+
+    }
+
+
     // Methods.
-    public void AddPlayer(IGamePlayer player)
+    public boolean AddPlayer(IGamePlayer player)
     {
         Objects.requireNonNull(player, "player is null");
+
+        IGamePlayer ExistingPlayer = _players.get(player.GetServerPlayer());
+        if ((ExistingPlayer != null))
+        {
+            return false;
+        }
+
         _players.put(player.GetServerPlayer(), player);
         UpdatePlayerLists();
+        return true;
     }
 
-    public void RemovePlayer(IGamePlayer player)
+    public void UpdateCollection()
     {
-        _players.remove(Objects.requireNonNull(player, "player is null").GetServerPlayer());
         UpdatePlayerLists();
     }
 
-    boolean ContainsPlayer(IServerPlayer player)
+    public boolean ContainsPlayer(IServerPlayer player)
     {
         return _players.containsKey(Objects.requireNonNull(player, "player is null"));
     }
 
-    List<IServerPlayer> GetPlayers()
+    public List<IGamePlayer> GetPlayers()
     {
-        return List.copyOf(_players.keySet());
+        return List.copyOf(_players.values());
     }
 
-    List<IGamePlayer> GetActivePlayers(IServerPlayer player)
+    public List<IGamePlayer> GetActivePlayers()
     {
         return _activePlayers;
     }
 
-    void AddSpectator(IServerPlayer player)
+    public boolean ContainsActivePlayer(IGamePlayer gamePlayer)
+    {
+        return _activePlayers.contains(gamePlayer);
+    }
+
+    public boolean ContainsActivePlayer(IServerPlayer serverPlayer)
+    {
+        IGamePlayer GamePlayer = GetGamePlayer(serverPlayer);
+        if (GamePlayer == null)
+        {
+            return false;
+        }
+        return ContainsActivePlayer(GamePlayer);
+    }
+
+    public boolean AddSpectator(IServerPlayer player)
     {
         if (_spectators.add(Objects.requireNonNull(player, "player is null")))
         {
             UpdatePlayerLists();
+            return true;
         }
+        return false;
     }
 
-    void RemoveSpectator(IServerPlayer player)
+    public boolean RemoveSpectator(IServerPlayer player)
     {
         if (_spectators.remove(Objects.requireNonNull(player, "player is null")))
         {
             UpdatePlayerLists();
+            return true;
         }
+        return false;
     }
 
-    boolean ContainsSpectator(IServerPlayer player)
+    public boolean ContainsSpectator(IServerPlayer player)
     {
         return _spectators.contains(Objects.requireNonNull(player, "player is null"));
     }
 
-    List<IServerPlayer> GetSpectators()
+    public List<IServerPlayer> GetSpectators()
     {
         return List.copyOf(_spectators);
     }
 
-    IGamePlayer GetGamePlayer(IServerPlayer player)
+    public IGamePlayer GetGamePlayer(IServerPlayer player)
     {
         return _players.get(Objects.requireNonNull(player, "player is null"));
     }
 
-    List<IServerPlayer> GetParticipants()
+    public List<IServerPlayer> GetParticipants()
     {
         return _participants;
     }

@@ -3,3 +3,13 @@ version: 1.21
 api-version: 1.21
 name: MoleHuntWC
 depend: [ProtocolLib, voicechat]
+
+permissions:
+  isOP:
+    description: Is server operator
+    default: op
+
+commands:
+  molehunt:
+    permission: isOP
+    description: Controls molehunt start and end

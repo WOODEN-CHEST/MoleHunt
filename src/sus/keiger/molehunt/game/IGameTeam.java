@@ -1,6 +1,7 @@
 package sus.keiger.molehunt.game;
 
 import org.bukkit.Color;
+import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.molehunt.player.IAudienceMemberHolder;
 import sus.keiger.molehunt.player.IServerPlayer;
 
@@ -9,11 +10,11 @@ import java.util.List;
 public interface IGameTeam extends IAudienceMemberHolder
 {
     GameTeamType GetType();
-    boolean AddPlayer(IServerPlayer player);
-    boolean RemovePlayer(IServerPlayer player);
+    boolean AddPlayer(IGamePlayer player);
+    boolean RemovePlayer(IGamePlayer player);
     void ClearPlayers();
-    List<IServerPlayer> GetPlayers();
-    boolean ContainsPlayer(IServerPlayer player);
+    List<IGamePlayer> GetPlayers();
+    boolean ContainsPlayer(IGamePlayer player);
     Color GetColor();
     String GetName();
 }

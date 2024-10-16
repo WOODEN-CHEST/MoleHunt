@@ -49,7 +49,7 @@ public class PlayerExistenceController implements IPlayerExistenceController
     public void SubscribeToEvents(IEventDispatcher dispatcher)
     {
         dispatcher.GetPlayerJoinEvent().Subscribe(this, this::OnPlayerJoinEvent, Integer.MAX_VALUE);
-        dispatcher.GetPlayerQuitEvent().Subscribe(this, this::OnPlayerQuitEvent, Integer.MAX_VALUE);
+        dispatcher.GetPlayerQuitEvent().Subscribe(this, this::OnPlayerQuitEvent, Integer.MIN_VALUE);
     }
 
     @Override

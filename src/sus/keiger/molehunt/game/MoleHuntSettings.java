@@ -8,8 +8,8 @@ public class MoleHuntSettings
     /* All settings initialized to a default value. */
     private int _gameTimeTicks = PCMath.SecondsToTicks(60d * 45d);
     private int _gracePeriodTimeTicks = PCMath.SecondsToTicks(60d * 5d);
-    private int _moleCountMin = 2;
-    private int _moleCountMax = 2;
+    private int _moleCountMin = 1;
+    private int _moleCountMax = 1;
     private boolean _doesBorderShrink = true;
     private int _worldBorderSizeStartBlocks = 400;
     private int _worldBorderSizeEndBlocks = 50;

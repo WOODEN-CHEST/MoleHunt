@@ -11,6 +11,8 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 import sus.keiger.molehunt.event.*;
 import sus.keiger.molehunt.game.IGameTeam;
+import sus.keiger.molehunt.game.IMoleHuntGameInstance;
+import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.player.*;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
@@ -20,11 +22,15 @@ import java.util.Objects;
 public class DefaultGamePlayer implements IGamePlayer
 {
     // Private fields.
-    private final IServerPlayer _serverPlayer;
     private final PCGamePacketController _packetController;
     private final IModifiablePlayerStats _stats = new PlayerStatsContainer();
     private final IServerPlayerCollection _playerCollection;
-    private boolean _isAlive;
+    private final PlayerSpellExecutor _spellExecutor;
+    private final PlayerSpellData _spellData = new PlayerSpellData();
+    private final IMoleHuntGameInstance _gameInstance;
+    private boolean _isAlive = true;
+    private boolean _mayDealDamage = true;
+    private IServerPlayer _serverPlayer;
     private IGameTeam _team;
     private GamePlayerState _state = GamePlayerState.PreGame;
     private IGamePlayerExecutor _executor;
@@ -32,14 +38,20 @@ public class DefaultGamePlayer implements IGamePlayer
 
     // Constructors.
     public DefaultGamePlayer(IServerPlayer player,
+                             IMoleHuntGameInstance gameInstance,
                              IGameTeam team,
                              PCGamePacketController packetController,
-                             IServerPlayerCollection playerCollection)
+                             IServerPlayerCollection playerCollection,
+                             SpellSettings spellSettings,
+                             SpellContainer spells)
     {
+        _gameInstance = Objects.requireNonNull(gameInstance, "gameInstance is null");
         _team = Objects.requireNonNull(team, "team is null");
         _serverPlayer = Objects.requireNonNull(player, "player is null");
         _packetController = Objects.requireNonNull(packetController, "packetContainer is null");
         _playerCollection = Objects.requireNonNull(playerCollection, "playerCollection is null");
+        _spellExecutor = new PlayerSpellExecutor(this, spellSettings, packetController, spells);
+        _executor = new AlivePlayerExecutor(this, _playerCollection);
     }
 
 
@@ -79,6 +91,28 @@ public class DefaultGamePlayer implements IGamePlayer
         _executor.OnPlayerDropItemEvent(event);
     }
 
+    private void OnPlayerCommandPreProcessEvent(PlayerCommandPreprocessEvent event)
+    {
+        if (!_serverPlayer.IsAdmin())
+        {
+            Bukkit.getLogger().warning("Cancelled command");
+            event.setCancelled(true);
+        }
+    }
+
+    private void OnPlayerSendCommandEvent(PlayerCommandSendEvent event)
+    {
+        if (!_serverPlayer.IsAdmin())
+        {
+            event.getCommands().clear();
+        }
+    }
+
+    @Override
+    public IMoleHuntGameInstance GetGameInstance()
+    {
+        return _gameInstance;
+    }
 
     // Inherited methods.
     @Override
@@ -91,6 +125,12 @@ public class DefaultGamePlayer implements IGamePlayer
     public IServerPlayer GetServerPlayer()
     {
         return _serverPlayer;
+    }
+
+    @Override
+    public void SetServerPlayer(IServerPlayer player)
+    {
+        _serverPlayer = Objects.requireNonNull(player, "player is null");
     }
 
     @Override
@@ -108,9 +148,16 @@ public class DefaultGamePlayer implements IGamePlayer
         }
 
         _isAlive = value;
+
+        if (_state != GamePlayerState.InGame)
+        {
+            return;
+        }
+
         _executor = _isAlive ?
-                new AlivePlayerExecutor(this, _playerCollection) :
+                new AlivePlayerExecutor(this, _playerCollection):
                 new DeadPlayerExecutor(this, _playerCollection);
+        _executor.SwitchState(_state);
     }
 
     public IGameTeam GetTeam()
@@ -137,6 +184,30 @@ public class DefaultGamePlayer implements IGamePlayer
         _executor.SwitchState(state);
     }
 
+    @Override
+    public PlayerSpellData GetSpellData()
+    {
+        return _spellData;
+    }
+
+    @Override
+    public void CastSpell(GameSpellDefinition spellDefinition, GameSpellArguments arguments)
+    {
+        _spellExecutor.CastSpell(spellDefinition, arguments);
+    }
+
+    @Override
+    public boolean GetMayDealDamage()
+    {
+        return _mayDealDamage;
+    }
+
+    @Override
+    public void SetMayDealDamage(boolean value)
+    {
+        _mayDealDamage = value;
+    }
+
 
     // Inherited methods.
     @Override
@@ -149,6 +220,8 @@ public class DefaultGamePlayer implements IGamePlayer
         dispatcher.GetBlockPlaceEvent().Subscribe(this, this::OnBlockPlaceEvent);
         dispatcher.GetPlayerInteractEvent().Subscribe(this, this::OnPlayerInteractEvent);
         dispatcher.GetPlayerDropItemEvent().Subscribe(this, this::OnPlayerDropItemEvent);
+        dispatcher.GetPlayerCommandPreprocessEvent().Subscribe(this, this::OnPlayerCommandPreProcessEvent);
+        dispatcher.GetPlayerCommandSendEvent().Subscribe(this, this::OnPlayerSendCommandEvent);
     }
 
     @Override
@@ -161,6 +234,8 @@ public class DefaultGamePlayer implements IGamePlayer
         dispatcher.GetBlockPlaceEvent().Unsubscribe(this);
         dispatcher.GetPlayerInteractEvent().Unsubscribe(this);
         dispatcher.GetPlayerDropItemEvent().Unsubscribe(this);
+        dispatcher.GetPlayerCommandPreprocessEvent().Unsubscribe(this);
+        dispatcher.GetPlayerCommandSendEvent().Unsubscribe(this);
     }
 
     @Override
@@ -257,7 +332,11 @@ public class DefaultGamePlayer implements IGamePlayer
     @Override
     public void Tick()
     {
-        _executor.Tick();
+        if (_state == GamePlayerState.InGame)
+        {
+            _executor.Tick();
+            _spellExecutor.Tick();
+        }
     }
 
     @Override

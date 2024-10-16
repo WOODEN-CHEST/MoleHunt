@@ -4,6 +4,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 
+import java.util.List;
+
 public class DefaultWorldProvider implements IWorldProvider
 {
     // Private static fields.
@@ -29,5 +31,11 @@ public class DefaultWorldProvider implements IWorldProvider
     public World GetTheEnd()
     {
         return Bukkit.getWorld(KEY_END);
+    }
+
+    @Override
+    public List<World> GetWorlds()
+    {
+        return List.of(GetOverworld(), GetNether(), GetTheEnd());
     }
 }

@@ -5,7 +5,10 @@ import sus.keiger.molehunt.game.event.MoleHuntCompleteEvent;
 import sus.keiger.molehunt.game.event.MoleHuntEndEvent;
 import sus.keiger.molehunt.game.event.MoleHuntPreStartEvent;
 import sus.keiger.molehunt.game.event.MoleHuntStartEvent;
+import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.molehunt.game.player.IPlayerStats;
+import sus.keiger.molehunt.game.spell.GameSpellArguments;
+import sus.keiger.molehunt.game.spell.GameSpellDefinition;
 import sus.keiger.molehunt.player.IAudienceMemberHolder;
 import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.plugincommon.ITickable;
@@ -16,14 +19,12 @@ import java.util.List;
 public interface IMoleHuntGameInstance extends ITickable, IMoleHuntEventListener, IAudienceMemberHolder
 {
     boolean AddPlayer(IServerPlayer player);
-    boolean RemovePlayer(IServerPlayer player);
-    void ClearPlayers();
     boolean ContainsPlayer(IServerPlayer player);
     boolean ContainsActivePlayer(IServerPlayer player);
-    IGameTeam GetTeamOfPlayer(IServerPlayer player);
+    IGamePlayer GetGamePlayer(IServerPlayer player);
 
-    void Start();
-    void End();
+    boolean Start();
+    boolean End();
     void Cancel();
 
     MoleHuntGameState GetState();
@@ -33,11 +34,10 @@ public interface IMoleHuntGameInstance extends ITickable, IMoleHuntEventListener
     boolean ContainsSpectator(IServerPlayer player);
     List<IServerPlayer> GetSpectators(IServerPlayer player);
 
-    IPlayerStats GetStatsOfPlayer(IServerPlayer player);
     long GetGameID();
 
-    public PCPluginEvent<MoleHuntPreStartEvent> GetPreStartEvent();
-    public PCPluginEvent<MoleHuntStartEvent> GetStartEvent();
-    public PCPluginEvent<MoleHuntEndEvent> GetEndEvent();
-    public PCPluginEvent<MoleHuntCompleteEvent> GetCompleteEvent();
+    PCPluginEvent<MoleHuntPreStartEvent> GetPreStartEvent();
+    PCPluginEvent<MoleHuntStartEvent> GetStartEvent();
+    PCPluginEvent<MoleHuntEndEvent> GetEndEvent();
+    PCPluginEvent<MoleHuntCompleteEvent> GetCompleteEvent();
 }

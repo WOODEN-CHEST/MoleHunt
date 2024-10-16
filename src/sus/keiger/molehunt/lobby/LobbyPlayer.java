@@ -70,6 +70,7 @@ public class LobbyPlayer implements ITickable, IAudienceMember, IMoleHuntEventLi
         MCPlayer.setVisualFire(false);
         MCPlayer.setInvisible(false);
         PlayerFunctions.ClearInventory(MCPlayer);
+        EntityFunctions.SetHealthPortion(MCPlayer, 1d);
 
         TeleportToLobby();
         SetPlayerInventory(MCPlayer);
@@ -139,9 +140,9 @@ public class LobbyPlayer implements ITickable, IAudienceMember, IMoleHuntEventLi
         {
             IServerPlayer KillerPlayer = _players.GetPlayer(PlayerCausingEntity);
             Message = "Killed by %s".formatted(KillerPlayer.GetName());
-
             KillerPlayer.ShowActionbar(new ActionbarMessage(PCMath.SecondsToTicks(DEFAULT_ACTIONBAR_DURATION_SECONDS),
-                    Component.text("Killed %s".formatted(_serverPlayer.GetName()))));
+                    Component.text("Killed %s".formatted(_serverPlayer.GetName())).color(NamedTextColor.GREEN)));
+            EntityFunctions.SetHealthPortion(PlayerCausingEntity, 1d);
         }
         else
         {
