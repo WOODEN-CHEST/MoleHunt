@@ -22,6 +22,8 @@ public interface IMoleHuntGameInstance extends ITickable, IMoleHuntEventListener
     boolean ContainsPlayer(IServerPlayer player);
     boolean ContainsActivePlayer(IServerPlayer player);
     IGamePlayer GetGamePlayer(IServerPlayer player);
+    List<IGamePlayer> GetActivePlayers();
+    List<IGamePlayer> GetPlayers();
 
     boolean Start();
     boolean End();

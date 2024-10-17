@@ -13,3 +13,6 @@ commands:
   molehunt:
     permission: isOP
     description: Controls molehunt start and end
+
+  spell:
+    description: Casts a spell

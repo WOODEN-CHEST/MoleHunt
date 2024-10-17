@@ -2,6 +2,7 @@ package sus.keiger.molehunt.game.player;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
@@ -93,18 +94,10 @@ public class DefaultGamePlayer implements IGamePlayer
 
     private void OnPlayerCommandPreProcessEvent(PlayerCommandPreprocessEvent event)
     {
-        if (!_serverPlayer.IsAdmin())
+        if ((_playerCollection.GetPlayer(event.getPlayer()) == _serverPlayer) && !_serverPlayer.IsAdmin())
         {
-            Bukkit.getLogger().warning("Cancelled command");
             event.setCancelled(true);
-        }
-    }
-
-    private void OnPlayerSendCommandEvent(PlayerCommandSendEvent event)
-    {
-        if (!_serverPlayer.IsAdmin())
-        {
-            event.getCommands().clear();
+            SendMessage(Component.text("Cannot send commands during MoleHunt.").color(NamedTextColor.RED));
         }
     }
 
@@ -221,7 +214,6 @@ public class DefaultGamePlayer implements IGamePlayer
         dispatcher.GetPlayerInteractEvent().Subscribe(this, this::OnPlayerInteractEvent);
         dispatcher.GetPlayerDropItemEvent().Subscribe(this, this::OnPlayerDropItemEvent);
         dispatcher.GetPlayerCommandPreprocessEvent().Subscribe(this, this::OnPlayerCommandPreProcessEvent);
-        dispatcher.GetPlayerCommandSendEvent().Subscribe(this, this::OnPlayerSendCommandEvent);
     }
 
     @Override
@@ -235,7 +227,6 @@ public class DefaultGamePlayer implements IGamePlayer
         dispatcher.GetPlayerInteractEvent().Unsubscribe(this);
         dispatcher.GetPlayerDropItemEvent().Unsubscribe(this);
         dispatcher.GetPlayerCommandPreprocessEvent().Unsubscribe(this);
-        dispatcher.GetPlayerCommandSendEvent().Unsubscribe(this);
     }
 
     @Override

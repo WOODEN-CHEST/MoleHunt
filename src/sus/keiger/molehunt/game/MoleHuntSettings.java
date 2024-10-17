@@ -17,6 +17,7 @@ public class MoleHuntSettings
     private int _spellCastCooldownTicks = PCMath.SecondsToTicks(45);
     private boolean _canCastSpells = true;
     private boolean _isNotifiedOnSpellCast = true;
+    private double _playerHealthHalfHearts = 20d;
 
 
     // Constructors.
@@ -145,5 +146,15 @@ public class MoleHuntSettings
     public void SetIsNotifiedOnSpellCast(boolean value)
     {
         _isNotifiedOnSpellCast = value;
+    }
+
+    public double GetPlayerHealthHalfHearts()
+    {
+        return _playerHealthHalfHearts;
+    }
+
+    public void SetPlayerHealthHalfHearts(double value)
+    {
+        _playerHealthHalfHearts = value;
     }
 }

@@ -1,6 +1,9 @@
 package sus.keiger.molehunt;
 
 import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.wrappers.EnumWrappers;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -15,8 +18,12 @@ import sus.keiger.molehunt.player.*;
 import sus.keiger.plugincommon.IIDProvider;
 import sus.keiger.plugincommon.ITickable;
 import sus.keiger.plugincommon.SequentialIDProvider;
+import sus.keiger.plugincommon.command.CommandData;
 import sus.keiger.plugincommon.command.ServerCommand;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
+import sus.keiger.plugincommon.packet.clientbound.PacketPlayerInfo;
+import sus.keiger.plugincommon.packet.clientbound.PlayerInfoRemovePacket;
+import sus.keiger.plugincommon.packet.clientbound.PlayerInfoUpdatePacket;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -66,9 +73,9 @@ public class MoleHuntPlugin extends JavaPlugin
         return new DefaultServerLobby(players, SpawnLocation, Bounds, eventDispatcher);
     }
 
-    private void RegisterCommands(IPlayerStateController playerStateController)
+    private void RegisterCommands(IPlayerStateController playerStateController, MoleHuntSettings settings)
     {
-        ServerCommand Command = MoleHuntCommand.GetCommand(playerStateController);
+        ServerCommand Command = MoleHuntCommand.GetCommand(playerStateController, settings);
         Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setTabCompleter(Command);
         Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setExecutor(Command);
     }
@@ -92,8 +99,9 @@ public class MoleHuntPlugin extends JavaPlugin
 
         IServerLobby Lobby = CreateLobby(WorldProvider, Players, EventDispatcher);
 
+        MoleHuntSettings GameSettings = new MoleHuntSettings();
         IPlayerStateController PlayerStateController = new DefaultPlayerStateController(GameIDProvider,
-                PacketController, WorldProvider, EventDispatcher, Players, new MoleHuntSettings(), Lobby);
+                PacketController, WorldProvider, EventDispatcher, Players,GameSettings, Lobby);
 
 
         // Initialize created components and objects.
@@ -110,7 +118,7 @@ public class MoleHuntPlugin extends JavaPlugin
 
 
         // Commands.
-        RegisterCommands(PlayerStateController);
+        RegisterCommands(PlayerStateController, GameSettings);
     }
 
     @Override

@@ -1,6 +1,10 @@
 package sus.keiger.molehunt.game.player;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -8,9 +12,13 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
 import org.bukkit.util.Vector;
+import sus.keiger.molehunt.MoleHuntPlugin;
+import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.molehunt.player.IServerPlayerCollection;
+import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.entity.EntityFunctions;
 import sus.keiger.plugincommon.player.PlayerFunctions;
+import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
 
 public class AlivePlayerExecutor extends PlayerExecutorBase
 {
@@ -32,7 +40,6 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
         PlayerFunctions.ClearInventory(MCPlayer);
 
         MCPlayer.setGameMode(GameMode.SURVIVAL);
-        MCPlayer.setInvulnerable(true);
         MCPlayer.setInvisible(false);
         MCPlayer.clearActivePotionEffects();
         PlayerFunctions.ResetAttributes(MCPlayer);
@@ -80,7 +87,10 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
         ResetFood();
     }
 
-    private void InGameTick() { }
+    private void InGameTick()
+    {
+        ShowNearestPlayerDistance();
+    }
 
     private void PostGameTick()
     {
@@ -89,18 +99,55 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
 
     private void SwitchToPreGameState()
     {
+        _state = GamePlayerState.PreGame;
+        GetPlayer().GetMCPlayer().setInvulnerable(true);
         ResetPlayer();
     }
 
     private void SwitchToInGameState()
     {
+        _state = GamePlayerState.InGame;
+        GetPlayer().GetMCPlayer().setInvulnerable(false);
         ResetPlayer();
     }
 
     private void SwitchToPostGameState()
     {
-        ResetFood();
+        _state = GamePlayerState.PostGame;
         GetPlayer().GetMCPlayer().setInvulnerable(true);
+        ResetFood();
+    }
+
+    private double GetNearestPlayerDistance()
+    {
+        double NearestDistance = Double.POSITIVE_INFINITY;
+        for (IGamePlayer Player : GetPlayer().GetGameInstance().GetPlayers())
+        {
+            if (Player == GetPlayer())
+            {
+                continue;
+            }
+            double Distance = Player.GetMCPlayer().getLocation().distance(GetPlayer().GetMCPlayer().getLocation());
+            if (Distance < NearestDistance)
+            {
+                NearestDistance = Distance;
+            }
+        }
+
+        if (Double.isInfinite(NearestDistance))
+        {
+            return 0d;
+        }
+        return NearestDistance;
+    }
+
+    private void ShowNearestPlayerDistance()
+    {
+        final long MESSAGE_ID = 67565838L;
+        Component Message = Component.text("Nearest Player: %sm"
+                .formatted(MoleHuntPlugin.GetNumberFormat("0.00").format(
+                        GetNearestPlayerDistance()))).color(NamedTextColor.AQUA);
+        GetPlayer().ShowActionbar(new ActionbarMessage(PCMath.TICKS_IN_SECOND, Message, MESSAGE_ID));
     }
 
 
@@ -119,27 +166,61 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
     @Override
     public void OnPlayerDeathEvent(PlayerDeathEvent event)
     {
-        TryCancelEventIfNotInGame(event, event.getPlayer());
+        if ((_state != GamePlayerState.InGame) && (event.getPlayer() == GetPlayer().GetMCPlayer()))
+        {
+            event.setCancelled(true);
+            return;
+        }
+
+        event.deathMessage(null);
+        GetPlayer().SetIsAlive(false);
     }
 
     @Override
     public void OnEntityDamageEvent(EntityDamageEvent event)
     {
-        if (event.getEntity() instanceof Player PlayerEntity)
+        if ((_state != GamePlayerState.InGame) && (event.getEntity() == GetPlayer().GetMCPlayer()))
         {
-            TryCancelEventIfNotInGame(event, PlayerEntity);
+            event.setCancelled(true);
+            return;
         }
 
-        if ((event.getDamageSource().getCausingEntity() instanceof Player PlayerCause)
-                && !GetPlayer().GetGameInstance().GetGamePlayer(GetServerPlayers().GetPlayer(PlayerCause))
-                .GetMayDealDamage())
+        if (!(event.getDamageSource().getCausingEntity() instanceof Player PlayerCause))
+        {
+            return;
+        }
+
+        IGamePlayer DamagerPlayer = GetPlayer().GetGameInstance()
+                .GetGamePlayer(GetServerPlayers().GetPlayer(PlayerCause));
+
+        if ((GetPlayer().GetMCPlayer() == event.getEntity()) && (DamagerPlayer != null)
+                && !DamagerPlayer.GetMayDealDamage())
         {
             event.setCancelled(true);
         }
     }
 
     @Override
-    public void OnAsyncChatEvent(AsyncChatEvent event) { }
+    public void OnAsyncChatEvent(AsyncChatEvent event)
+    {
+        if (event.getPlayer() != GetPlayer().GetMCPlayer())
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+        if (_state == GamePlayerState.InGame)
+        {
+            event.setCancelled(true);
+            GetPlayer().SendMessage(Component.text("You may not chat in MoleHunt.").color(NamedTextColor.RED));
+        }
+        else
+        {
+            GetPlayer().GetGameInstance().SendMessage(Component.text("<%s> %s".formatted(event.getPlayer().getName(),
+                    PlainTextComponentSerializer.plainText().serialize(event.originalMessage())))
+                    .color(NamedTextColor.AQUA));
+        }
+    }
 
     @Override
     public void OnBlockBreakEvent(BlockBreakEvent event)

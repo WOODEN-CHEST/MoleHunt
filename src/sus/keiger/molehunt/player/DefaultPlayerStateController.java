@@ -83,6 +83,7 @@ public class DefaultPlayerStateController implements IPlayerStateController
         }
         else
         {
+            Bukkit.getLogger().warning("Added spectator");
             _currentGameInstance.AddSpectator(_players.GetPlayer(event.getPlayer()));
         }
     }
@@ -98,6 +99,7 @@ public class DefaultPlayerStateController implements IPlayerStateController
     {
         _players.GetPlayers().forEach(this::AddPlayerToLobby);
         event.GetGameInstance().GetCompleteEvent().Unsubscribe(this);
+        event.GetGameInstance().UnsubscribeFromEvents(_eventDispatcher);
         CreateNewGameInstance();
     }
 
@@ -143,7 +145,12 @@ public class DefaultPlayerStateController implements IPlayerStateController
             _lobby.RemovePlayer(player);
             _currentGameInstance.AddPlayer(player);
         });
-        return _currentGameInstance.Start();
+        if (_currentGameInstance.Start())
+        {
+            _currentGameInstance.SubscribeToEvents(_eventDispatcher);
+            return true;
+        }
+        return false;
     }
 
     @Override

@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Bukkit;
 import sus.keiger.molehunt.game.player.GamePlayerCollection;
 import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.molehunt.player.IServerPlayer;
@@ -35,29 +36,22 @@ public class GameTabListUpdater
         ShowAllInfo(targetPlayer, players);
     }
 
-    public void UpdateTabListForGamePlayer(IGamePlayer targetPlayer, GamePlayerCollection players)
+    public void UpdateGamePlayerTabList(IGamePlayer targetPlayer, GamePlayerCollection players)
     {
         if (targetPlayer.IsAlive() && targetPlayer.GetTeam().GetType() == GameTeamType.Innocents)
         {
             HideAllPlayers(targetPlayer.GetServerPlayer(), players);
-        }
-        else
+        } else
         {
             ShowAllInfo(targetPlayer.GetServerPlayer(), players);
         }
     }
 
-    private Component GetSpectatorTabName(String playerName)
-    {
-        return Component.text("[Spectator] ").color(NamedTextColor.GRAY)
-                .append(Component.text(playerName).color(NamedTextColor.GRAY));
-    }
-
     public void UpdateNonInGameTabList(IServerPlayer targetPlayer, GamePlayerCollection players)
     {
         PlayerInfoUpdatePacket Packet = new PlayerInfoUpdatePacket();
-        Packet.SetPlayerInfoActions(Set.of(EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME,
-                EnumWrappers.PlayerInfoAction.ADD_PLAYER));
+        Packet.SetPlayerInfoActions(Set.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER,
+                EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME, EnumWrappers.PlayerInfoAction.UPDATE_LISTED));
 
         Packet.SetPlayerInfo(players.GetParticipants().stream().map(participant ->
         {
@@ -83,8 +77,8 @@ public class GameTabListUpdater
     {
         PlayerInfoRemovePacket RemovePacket = new PlayerInfoRemovePacket();
 
-        RemovePacket.SetUUIDs(players.GetPlayers().stream().map(
-                gamePlayer -> gamePlayer.GetMCPlayer().getUniqueId()).toList());
+        RemovePacket.SetUUIDs(players.GetPlayers().stream().filter(player -> player.GetServerPlayer() != targetPlayer)
+                .map(gamePlayer -> gamePlayer.GetMCPlayer().getUniqueId()).toList());
 
         _packetController.SendPacket(RemovePacket, targetPlayer.GetMCPlayer());
     }
@@ -93,8 +87,8 @@ public class GameTabListUpdater
     private void ShowAllInfo(IServerPlayer targetPlayer, GamePlayerCollection players)
     {
         PlayerInfoUpdatePacket Packet = new PlayerInfoUpdatePacket();
-        Packet.SetPlayerInfoActions(Set.of(EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME,
-                EnumWrappers.PlayerInfoAction.ADD_PLAYER));
+        Packet.SetPlayerInfoActions(Set.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER,
+                EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME, EnumWrappers.PlayerInfoAction.UPDATE_LISTED));
 
         Packet.SetPlayerInfo(players.GetParticipants().stream()
                 .map(participant ->
@@ -121,5 +115,11 @@ public class GameTabListUpdater
                 }).toList());
 
         _packetController.SendPacket(Packet, targetPlayer.GetMCPlayer());
+    }
+
+    private Component GetSpectatorTabName(String playerName)
+    {
+        return Component.text("[Spectator] ").color(NamedTextColor.GRAY)
+                .append(Component.text(playerName).color(NamedTextColor.GRAY));
     }
 }

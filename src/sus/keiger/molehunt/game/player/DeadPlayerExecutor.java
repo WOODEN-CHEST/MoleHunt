@@ -1,6 +1,10 @@
 package sus.keiger.molehunt.game.player;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.block.*;
@@ -57,7 +61,22 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
     }
 
     @Override
-    public void OnAsyncChatEvent(AsyncChatEvent event) { }
+    public void OnAsyncChatEvent(AsyncChatEvent event)
+    {
+        if (event.getPlayer() != GetPlayer().GetMCPlayer())
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+
+        Component Message = Component.text("[To Spectators]<%s> %s".formatted(event.getPlayer().getName(),
+                PlainTextComponentSerializer.plainText().serialize(event.originalMessage())))
+                .color(NamedTextColor.GRAY);
+
+        GetPlayer().GetGameInstance().GetPlayers().stream().filter(player -> !player.IsAlive())
+                .forEach(player -> player.SendMessage(Message));
+    }
 
     @Override
     public void OnBlockBreakEvent(BlockBreakEvent event)
