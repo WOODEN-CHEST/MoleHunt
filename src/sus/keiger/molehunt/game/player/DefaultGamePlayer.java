@@ -11,48 +11,52 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 import sus.keiger.molehunt.event.*;
-import sus.keiger.molehunt.game.IGameTeam;
-import sus.keiger.molehunt.game.IMoleHuntGameInstance;
 import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.player.*;
-import sus.keiger.plugincommon.packet.PCGamePacketController;
+import sus.keiger.plugincommon.PCPluginEvent;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
+import sus.keiger.plugincommon.value.GameModifiableValue;
 
 import java.util.Objects;
 
 public class DefaultGamePlayer implements IGamePlayer
 {
     // Private fields.
-    private final PCGamePacketController _packetController;
     private final IModifiablePlayerStats _stats = new PlayerStatsContainer();
-    private final IServerPlayerCollection _playerCollection;
-    private final PlayerSpellExecutor _spellExecutor;
+    private final IServerPlayerCollection _serverPlayerCollection;
+    private final GamePlayerCollection _gamePlayerCollection;
     private final PlayerSpellData _spellData = new PlayerSpellData();
-    private final IMoleHuntGameInstance _gameInstance;
-    private boolean _isAlive = true;
+    private final IServerPlayer _serverPlayer;
+
+    private final PCPluginEvent<GamePlayerLifeChangeEvent> _lifeChangeEvent = new PCPluginEvent<>();
+
+    private boolean _isAlive;
     private boolean _mayDealDamage = true;
-    private IServerPlayer _serverPlayer;
-    private IGameTeam _team;
     private GamePlayerState _state = GamePlayerState.PreGame;
     private IGamePlayerExecutor _executor;
+
+    private final double DEFAULT_HEALTH = 20d;
+    private final double DEFAULT_MINING_SPEED = 1d;
+    private final double DEFAULT_ATTACK_SPEED = 4d;
+    private final double DEFAULT_ENTITY_REACH = 3d;
+    private final GameModifiableValue _maxHealth = new GameModifiableValue(DEFAULT_HEALTH);
+    private final GameModifiableValue _miningSpeed = new GameModifiableValue(DEFAULT_MINING_SPEED);
+    private final GameModifiableValue _attackSpeed = new GameModifiableValue(DEFAULT_ATTACK_SPEED);
+    private final GameModifiableValue _entityReach = new GameModifiableValue(DEFAULT_ENTITY_REACH);
+
 
 
     // Constructors.
     public DefaultGamePlayer(IServerPlayer player,
-                             IMoleHuntGameInstance gameInstance,
-                             IGameTeam team,
-                             PCGamePacketController packetController,
                              IServerPlayerCollection playerCollection,
-                             SpellSettings spellSettings,
-                             SpellContainer spells)
+                             GamePlayerCollection gamePlayerCollection)
     {
-        _gameInstance = Objects.requireNonNull(gameInstance, "gameInstance is null");
-        _team = Objects.requireNonNull(team, "team is null");
         _serverPlayer = Objects.requireNonNull(player, "player is null");
-        _packetController = Objects.requireNonNull(packetController, "packetContainer is null");
-        _playerCollection = Objects.requireNonNull(playerCollection, "playerCollection is null");
-        _spellExecutor = new PlayerSpellExecutor(this, spellSettings, packetController, spells);
-        _executor = new AlivePlayerExecutor(this, _playerCollection);
+        _serverPlayerCollection = Objects.requireNonNull(playerCollection, "playerCollection is null");
+        _gamePlayerCollection = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
+
+        _isAlive = true;
+        _executor = new AlivePlayerExecutor(this, _serverPlayerCollection, gamePlayerCollection);
     }
 
 
@@ -65,6 +69,26 @@ public class DefaultGamePlayer implements IGamePlayer
     private void OnEntityDamageEvent(EntityDamageEvent event)
     {
         _executor.OnEntityDamageEvent(event);
+
+        if ((_state != GamePlayerState.InGame) && (event.getEntity() == GetMCPlayer()))
+        {
+            event.setCancelled(true);
+            return;
+        }
+
+        if (!(event.getDamageSource().getCausingEntity() instanceof Player PlayerCause))
+        {
+            return;
+        }
+
+        IGamePlayer DamagerPlayer = _gamePlayerCollection.GetGamePlayer(
+                _serverPlayerCollection.GetPlayer(PlayerCause));
+
+        if ((GetMCPlayer() == event.getEntity()) && (DamagerPlayer != null)
+                && !DamagerPlayer.GetMayDealDamage())
+        {
+            event.setCancelled(true);
+        }
     }
 
     private void OnAsyncChatEvent(AsyncChatEvent event)
@@ -94,18 +118,13 @@ public class DefaultGamePlayer implements IGamePlayer
 
     private void OnPlayerCommandPreProcessEvent(PlayerCommandPreprocessEvent event)
     {
-        if ((_playerCollection.GetPlayer(event.getPlayer()) == _serverPlayer) && !_serverPlayer.IsAdmin())
+        if ((_serverPlayerCollection.GetPlayer(event.getPlayer()) == _serverPlayer) && !_serverPlayer.IsAdmin())
         {
             event.setCancelled(true);
             SendMessage(Component.text("Cannot send commands during MoleHunt.").color(NamedTextColor.RED));
         }
     }
 
-    @Override
-    public IMoleHuntGameInstance GetGameInstance()
-    {
-        return _gameInstance;
-    }
 
     // Inherited methods.
     @Override
@@ -118,12 +137,6 @@ public class DefaultGamePlayer implements IGamePlayer
     public IServerPlayer GetServerPlayer()
     {
         return _serverPlayer;
-    }
-
-    @Override
-    public void SetServerPlayer(IServerPlayer player)
-    {
-        _serverPlayer = Objects.requireNonNull(player, "player is null");
     }
 
     @Override
@@ -148,20 +161,11 @@ public class DefaultGamePlayer implements IGamePlayer
         }
 
         _executor = _isAlive ?
-                new AlivePlayerExecutor(this, _playerCollection):
-                new DeadPlayerExecutor(this, _playerCollection);
+                new AlivePlayerExecutor(this, _serverPlayerCollection, _gamePlayerCollection):
+                new DeadPlayerExecutor(this, _serverPlayerCollection);
         _executor.SwitchState(_state);
-    }
 
-    public IGameTeam GetTeam()
-    {
-        return _team;
-    }
-
-    @Override
-    public void SetTeam(IGameTeam team)
-    {
-        _team = Objects.requireNonNull(team, "team is null");
+        _lifeChangeEvent.FireEvent(new GamePlayerLifeChangeEvent(this, _isAlive));
     }
 
     @Override
@@ -178,18 +182,6 @@ public class DefaultGamePlayer implements IGamePlayer
     }
 
     @Override
-    public PlayerSpellData GetSpellData()
-    {
-        return _spellData;
-    }
-
-    @Override
-    public void CastSpell(GameSpellDefinition spellDefinition, GameSpellArguments arguments)
-    {
-        _spellExecutor.CastSpell(spellDefinition, arguments);
-    }
-
-    @Override
     public boolean GetMayDealDamage()
     {
         return _mayDealDamage;
@@ -199,6 +191,36 @@ public class DefaultGamePlayer implements IGamePlayer
     public void SetMayDealDamage(boolean value)
     {
         _mayDealDamage = value;
+    }
+
+    @Override
+    public GameModifiableValue GetMaxHealth()
+    {
+        return _maxHealth;
+    }
+
+    @Override
+    public GameModifiableValue GetMiningSpeed()
+    {
+        return _miningSpeed;
+    }
+
+    @Override
+    public GameModifiableValue GetEntityReach()
+    {
+        return _entityReach;
+    }
+
+    @Override
+    public GameModifiableValue GetAttackSpeed()
+    {
+        return _attackSpeed;
+    }
+
+    @Override
+    public PCPluginEvent<GamePlayerLifeChangeEvent> GetLifeChangeEvent()
+    {
+        return _lifeChangeEvent;
     }
 
 
@@ -326,7 +348,6 @@ public class DefaultGamePlayer implements IGamePlayer
         if (_state == GamePlayerState.InGame)
         {
             _executor.Tick();
-            _spellExecutor.Tick();
         }
     }
 

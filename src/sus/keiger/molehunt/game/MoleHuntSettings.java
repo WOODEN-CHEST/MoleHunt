@@ -14,7 +14,7 @@ public class MoleHuntSettings
     private int _worldBorderSizeStartBlocks = 400;
     private int _worldBorderSizeEndBlocks = 50;
     private int _borderShrinkStartTimeTicks = PCMath.SecondsToTicks(60d * 10d);
-    private int _spellCastCooldownTicks = PCMath.SecondsToTicks(45);
+    private int _spellCastCooldownTicks = PCMath.SecondsToTicks(60d);
     private boolean _canCastSpells = true;
     private boolean _isNotifiedOnSpellCast = true;
     private double _playerHealthHalfHearts = 20d;

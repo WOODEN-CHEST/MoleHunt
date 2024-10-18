@@ -38,7 +38,7 @@ public class GameTabListUpdater
 
     public void UpdateGamePlayerTabList(IGamePlayer targetPlayer, GamePlayerCollection players)
     {
-        if (targetPlayer.IsAlive() && targetPlayer.GetTeam().GetType() == GameTeamType.Innocents)
+        if (targetPlayer.IsAlive() && players.GetTeamOfPlayer(targetPlayer).GetType() == GameTeamType.Innocents)
         {
             HideAllPlayers(targetPlayer.GetServerPlayer(), players);
         } else
@@ -100,7 +100,7 @@ public class GameTabListUpdater
                         return Info;
                     }
 
-                    IGameTeam ParticipantTeam = players.GetGamePlayer(participant).GetTeam();
+                    IGameTeam ParticipantTeam = players.GetTeamOfPlayer(players.GetGamePlayer(participant));
                     TextComponent.Builder Builder = Component.text();
                     if (!players.GetGamePlayer(participant).IsAlive())
                     {

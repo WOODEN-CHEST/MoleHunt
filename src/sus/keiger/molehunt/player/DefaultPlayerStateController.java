@@ -99,7 +99,6 @@ public class DefaultPlayerStateController implements IPlayerStateController
     {
         _players.GetPlayers().forEach(this::AddPlayerToLobby);
         event.GetGameInstance().GetCompleteEvent().Unsubscribe(this);
-        event.GetGameInstance().UnsubscribeFromEvents(_eventDispatcher);
         CreateNewGameInstance();
     }
 
@@ -145,12 +144,7 @@ public class DefaultPlayerStateController implements IPlayerStateController
             _lobby.RemovePlayer(player);
             _currentGameInstance.AddPlayer(player);
         });
-        if (_currentGameInstance.Start())
-        {
-            _currentGameInstance.SubscribeToEvents(_eventDispatcher);
-            return true;
-        }
-        return false;
+        return _currentGameInstance.Start();
     }
 
     @Override

@@ -13,7 +13,7 @@ public class DefaultWorldInitializer implements IWorldInitializer
         world.setStorm(false);
         world.setThundering(false);
 
-        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
-        world.setGameRule(GameRule.DO_WEATHER_CYCLE, true);
+        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
     }
 }

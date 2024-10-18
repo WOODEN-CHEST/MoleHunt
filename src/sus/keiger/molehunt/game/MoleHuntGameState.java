@@ -3,7 +3,7 @@ package sus.keiger.molehunt.game;
 public enum MoleHuntGameState
 {
     Initializing,
-    PreStart,
+    PreGame,
     InGame,
     PostGame,
     Complete

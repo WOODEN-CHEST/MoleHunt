@@ -1,4 +1,6 @@
-package sus.keiger.molehunt.game;
+package sus.keiger.molehunt.game.event;
+
+import sus.keiger.molehunt.game.IMoleHuntGameInstance;
 
 import java.util.Objects;
 

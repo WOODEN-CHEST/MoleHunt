@@ -2,10 +2,10 @@ package sus.keiger.molehunt.game.player;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
+import org.bukkit.*;
+import sus.keiger.molehunt.game.GameTeamType;
+import sus.keiger.molehunt.game.IGameTeam;
+import sus.keiger.molehunt.game.MoleHuntTeam;
 import sus.keiger.molehunt.player.IAudienceMember;
 import sus.keiger.molehunt.player.IAudienceMemberHolder;
 import sus.keiger.molehunt.player.IServerPlayer;
@@ -22,12 +22,25 @@ public class GamePlayerCollection implements IAudienceMemberHolder
     private final Set<IServerPlayer> _spectators = new HashSet<>();
     private List<IGamePlayer> _activePlayers = Collections.emptyList();
     private List<IServerPlayer> _participants = Collections.emptyList();
+    private Map<GameTeamType, IGameTeam> _teams =  new HashMap<>();
+
+    private final String MOLE_TEAM_NAME = "Mole";
+    private final Color MOLE_TEAM_COLOR = Color.fromRGB(0xa30000);
+    private final String INNOCENT_TEAM_NAME = "Innocent";
+    private final Color INNOCENT_TEAM_COLOR = Color.fromRGB(0x52f22e);
+    private final String NONE_TEAM_NAME = "None";
+    private final Color NONE_TEAM_COLOR = Color.fromRGB(0x5cb8ed);
 
 
     // Constructors.
     public GamePlayerCollection()
     {
-
+        _teams.put(GameTeamType.Moles, new MoleHuntTeam(GameTeamType.Moles,
+                MOLE_TEAM_COLOR, MOLE_TEAM_NAME));
+        _teams.put(GameTeamType.Innocents, new MoleHuntTeam(GameTeamType.Innocents,
+                INNOCENT_TEAM_COLOR, INNOCENT_TEAM_NAME));
+        _teams.put(GameTeamType.None, new MoleHuntTeam(GameTeamType.None,
+                NONE_TEAM_COLOR, NONE_TEAM_NAME));
     }
 
 
@@ -120,6 +133,27 @@ public class GamePlayerCollection implements IAudienceMemberHolder
     public List<IServerPlayer> GetParticipants()
     {
         return _participants;
+    }
+
+    public void SetTeamOfPlayer(IGamePlayer player, GameTeamType type)
+    {
+        IGameTeam CurrentTeam = GetTeamOfPlayer(player);
+        if (CurrentTeam != null)
+        {
+            CurrentTeam.RemovePlayer(player);
+        }
+
+        _teams.get(type).AddPlayer(player);
+    }
+
+    public IGameTeam GetTeamOfPlayer(IGamePlayer player)
+    {
+        return _teams.values().stream().filter(team -> team.ContainsPlayer(player)).findFirst().orElse(null);
+    }
+
+    public IGameTeam GetTeamByType(GameTeamType type)
+    {
+        return _teams.get(Objects.requireNonNull(type, "type is null"));
     }
 
 

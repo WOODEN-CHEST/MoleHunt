@@ -1,12 +1,7 @@
 package sus.keiger.molehunt.game.player;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
+import org.bukkit.GameMode;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
@@ -27,67 +22,55 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
         super(gamePlayer, playerCollection);
     }
 
-
-    // Private methods.
-    private void TryCancelInGamePlayerEvent(Cancellable event, Player player)
-    {
-        if ((_state == GamePlayerState.InGame)
-                && (GetServerPlayers().GetPlayer(player) == GetPlayer().GetServerPlayer()))
-        {
-            event.setCancelled(true);
-        }
-    }
-
     // Inherited methods.
     @Override
     public void SwitchState(GamePlayerState state)
     {
         _state = Objects.requireNonNull(state, "state is null");
+        GetPlayer().GetMaxHealth().ClearModifiers();
+        GetPlayer().GetMiningSpeed().ClearModifiers();
+        GetPlayer().GetAttackSpeed().ClearModifiers();
+        GetPlayer().GetEntityReach().ClearModifiers();
+        GetPlayer().GetMCPlayer().setGameMode(GameMode.SPECTATOR);
     }
 
     @Override
     public void OnPlayerDeathEvent(PlayerDeathEvent event)
     {
-        TryCancelInGamePlayerEvent(event, event.getPlayer());
+        if (event.getPlayer() == GetPlayer().GetMCPlayer())
+        {
+            event.setCancelled(true);
+        }
     }
 
     @Override
     public void OnEntityDamageEvent(EntityDamageEvent event)
     {
-        if (event.getEntity() instanceof Player PlayerEntity)
+        if (event.getEntity() == GetPlayer().GetMCPlayer())
         {
-            TryCancelInGamePlayerEvent(event, PlayerEntity);
+            event.setCancelled(true);
         }
     }
 
     @Override
-    public void OnAsyncChatEvent(AsyncChatEvent event)
-    {
-        if (event.getPlayer() != GetPlayer().GetMCPlayer())
-        {
-            return;
-        }
-
-        event.setCancelled(true);
-
-        Component Message = Component.text("[To Spectators]<%s> %s".formatted(event.getPlayer().getName(),
-                PlainTextComponentSerializer.plainText().serialize(event.originalMessage())))
-                .color(NamedTextColor.GRAY);
-
-        GetPlayer().GetGameInstance().GetPlayers().stream().filter(player -> !player.IsAlive())
-                .forEach(player -> player.SendMessage(Message));
-    }
+    public void OnAsyncChatEvent(AsyncChatEvent event) { }
 
     @Override
     public void OnBlockBreakEvent(BlockBreakEvent event)
     {
-        TryCancelInGamePlayerEvent(event, event.getPlayer());
+        if (event.getPlayer() == GetPlayer().GetMCPlayer())
+        {
+            event.setCancelled(true);
+        }
     }
 
     @Override
     public void OnBlockPlaceEvent(BlockPlaceEvent event)
     {
-        TryCancelInGamePlayerEvent(event, event.getPlayer());
+        if (event.getPlayer() == GetPlayer().GetMCPlayer())
+        {
+            event.setCancelled(true);
+        }
     }
 
     @Override
@@ -95,7 +78,10 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
     @Override
     public void OnPlayerDropItemEvent(PlayerDropItemEvent event)
     {
-        TryCancelInGamePlayerEvent(event, event.getPlayer());
+        if (event.getPlayer() == GetPlayer().GetMCPlayer())
+        {
+            event.setCancelled(true);
+        }
     }
 
     @Override

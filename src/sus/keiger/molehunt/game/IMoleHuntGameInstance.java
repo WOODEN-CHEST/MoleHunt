@@ -1,10 +1,7 @@
 package sus.keiger.molehunt.game;
 
 import sus.keiger.molehunt.event.IMoleHuntEventListener;
-import sus.keiger.molehunt.game.event.MoleHuntCompleteEvent;
-import sus.keiger.molehunt.game.event.MoleHuntEndEvent;
-import sus.keiger.molehunt.game.event.MoleHuntPreStartEvent;
-import sus.keiger.molehunt.game.event.MoleHuntStartEvent;
+import sus.keiger.molehunt.game.event.*;
 import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.molehunt.game.player.IPlayerStats;
 import sus.keiger.molehunt.game.spell.GameSpellArguments;
@@ -16,14 +13,12 @@ import sus.keiger.plugincommon.PCPluginEvent;
 
 import java.util.List;
 
-public interface IMoleHuntGameInstance extends ITickable, IMoleHuntEventListener, IAudienceMemberHolder
+public interface IMoleHuntGameInstance extends ITickable, IAudienceMemberHolder
 {
     boolean AddPlayer(IServerPlayer player);
     boolean ContainsPlayer(IServerPlayer player);
     boolean ContainsActivePlayer(IServerPlayer player);
     IGamePlayer GetGamePlayer(IServerPlayer player);
-    List<IGamePlayer> GetActivePlayers();
-    List<IGamePlayer> GetPlayers();
 
     boolean Start();
     boolean End();
@@ -42,4 +37,6 @@ public interface IMoleHuntGameInstance extends ITickable, IMoleHuntEventListener
     PCPluginEvent<MoleHuntStartEvent> GetStartEvent();
     PCPluginEvent<MoleHuntEndEvent> GetEndEvent();
     PCPluginEvent<MoleHuntCompleteEvent> GetCompleteEvent();
+    PCPluginEvent<ParticipantAddEvent> GetParticipantAddEvent();
+    PCPluginEvent<ParticipantRemoveEvent> GetParticipantRemoveEvent();
 }
