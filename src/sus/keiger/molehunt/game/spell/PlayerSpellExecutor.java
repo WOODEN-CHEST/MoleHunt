@@ -12,7 +12,7 @@ import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
 
 import java.util.Objects;
 
-public class PlayerSpellExecutor implements ITickable
+public class PlayerSpellData implements ITickable
 {
     // Private fields.
     private final IGamePlayer _gamePlayer;
@@ -26,7 +26,7 @@ public class PlayerSpellExecutor implements ITickable
 
 
     // Constructors,
-    public PlayerSpellExecutor(IGamePlayer gamePlayer,
+    public PlayerSpellData(IGamePlayer gamePlayer,
                                SpellSettings spellSettings,
                                PCGamePacketController packetController,
                                SpellContainer spells)
@@ -91,29 +91,6 @@ public class PlayerSpellExecutor implements ITickable
 
 
     // Methods.
-    public void CastSpell(GameSpellDefinition spellDefinition, GameSpellArguments args)
-    {
-        if (_spellCooldownTicks > 0)
-        {
-            ShowSpellCooldownContent();
-            return;
-        }
-        else if (_gamePlayer.IsAlive())
-        {
-            ShowCantCastSpellContent();
-            return;
-        }
-
-        GameSpell Spell = spellDefinition.CreateSpell(args);
-        _spells.AddSpell(Spell);
-        ShowSpellCastContentSelf(spellDefinition.GetName());
-        if (args.GetTargetPlayer() != null)
-        {
-            ShowSpellCastContentTarget(args.GetTargetPlayer());
-        }
-        _spellCooldownTicks = _spellSettings.GetSpellCooldownTicks();
-    }
-
 
     // Inherited methods.
     @Override

@@ -1,22 +1,52 @@
 package sus.keiger.molehunt.game;
 
+import org.bukkit.Bukkit;
 import sus.keiger.plugincommon.PCMath;
+
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 public class MoleHuntSettings
 {
     // Private fields.
     /* All settings initialized to a default value. */
+    @IntGameProperty(Name = "GameTimeTicks", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _gameTimeTicks = PCMath.SecondsToTicks(60d * 45d);
+
+    @IntGameProperty(Name = "GracePeriodTicks", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _gracePeriodTimeTicks = PCMath.SecondsToTicks(60d * 5d);
+
+    @IntGameProperty(Name = "MoleCountMin", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _moleCountMin = 1;
+
+    @IntGameProperty(Name = "MoleCountMax", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _moleCountMax = 1;
+
+    @BooleanGameProperty(Name = "DoesBorderShrink")
     private boolean _doesBorderShrink = true;
+
+    @IntGameProperty(Name = "BorderSizeStart", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _worldBorderSizeStartBlocks = 400;
+
+    @IntGameProperty(Name = "BorderSizeEnd", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _worldBorderSizeEndBlocks = 50;
+
+    @IntGameProperty(Name = "ShrinkStartTimeTicks", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _borderShrinkStartTimeTicks = PCMath.SecondsToTicks(60d * 10d);
+
+    @IntGameProperty(Name = "SpellCooldownTicks", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _spellCastCooldownTicks = PCMath.SecondsToTicks(60d);
+
+    @BooleanGameProperty(Name = "CanCastSpells")
     private boolean _canCastSpells = true;
+
+    @BooleanGameProperty(Name = "IsNotifiedOnSpellCast")
     private boolean _isNotifiedOnSpellCast = true;
+
+    @FloatGameProperty(Name = "MoleCountMax", MinValue = 0.0001d, MaxValue = 1000d)
     private double _playerHealthHalfHearts = 20d;
 
 
@@ -37,25 +67,36 @@ public class MoleHuntSettings
     }
 
 
+    // Private methods.
+    private void SetField(Field field, Object value) throws IllegalAccessException
+    {
+        if (field.getType().equals(int.class))
+        {
+            int MinValue = field.getAnnotationsByType(IntGameProperty.class)[0].MinValue();
+            int MaxValue = field.getAnnotationsByType(IntGameProperty.class)[0].MaxValue();
+            field.set(this, Math.max(MinValue, Math.min((Integer)value, MaxValue)));
+        }
+        else if (field.getType().equals(double.class))
+        {
+            double MinValue = field.getAnnotationsByType(IntGameProperty.class)[0].MinValue();
+            double MaxValue = field.getAnnotationsByType(IntGameProperty.class)[0].MaxValue();
+            field.set(this, Math.max(MinValue, Math.min((Integer)value, MaxValue)));
+        }
+        else
+        {
+            field.set(this, value);
+        }
+    }
+
+
     // Methods.
     public int GetGameTimeTicks()
     {
         return _gameTimeTicks;
     }
-
-    public void SetGameTimeTicks(int value)
-    {
-        _gameTimeTicks = value;
-    }
-
     public int GetGracePeriodTimeTicks()
     {
         return _gracePeriodTimeTicks;
-    }
-
-    public void SetGracePeriodTimeTicks(int value)
-    {
-        _gracePeriodTimeTicks = value;
     }
 
     public int GetMoleCountMin()
@@ -63,29 +104,13 @@ public class MoleHuntSettings
         return _moleCountMin;
     }
 
-    public void SetMoleCountMin(int value)
-    {
-        _moleCountMin = value;
-    }
-
     public int GetMoleCountMax()
     {
         return _moleCountMax;
     }
-
-    public void SetMoleCountMax(int value)
-    {
-        _moleCountMax = value;
-    }
-
     public int GetBorderSizeStartBlocks()
     {
         return _worldBorderSizeStartBlocks;
-    }
-
-    public void SetBorderSizeStartBlocks(int value)
-    {
-        _worldBorderSizeStartBlocks = value;
     }
 
     public int GetBorderSizeEndBlocks()
@@ -93,19 +118,9 @@ public class MoleHuntSettings
         return _worldBorderSizeEndBlocks;
     }
 
-    public void SetBorderSizeEndBlocks(int value)
-    {
-        _worldBorderSizeEndBlocks = value;
-    }
-
     public int GetBorderShrinkStartTimeTicks()
     {
         return _borderShrinkStartTimeTicks;
-    }
-
-    public void SetBorderShrinkStartTimeTicks(int value)
-    {
-        _borderShrinkStartTimeTicks = value;
     }
 
     public boolean GetDoesBorderShrink()
@@ -113,39 +128,17 @@ public class MoleHuntSettings
         return _doesBorderShrink;
     }
 
-    public void SetDoesBorderShrink(boolean value)
-    {
-        _doesBorderShrink = value;
-    }
-
     public int GetSpellCastCooldownTicks()
     {
         return _spellCastCooldownTicks;
     }
-
-    public void SetSpellCastCooldownTicks(int value)
-    {
-        _spellCastCooldownTicks = value;
-    }
-
     public boolean GetCanCastSpells()
     {
         return _canCastSpells;
     }
-
-    public void SetCanCastSpells(boolean value)
-    {
-        _canCastSpells = value;
-    }
-
     public boolean GetIsNotifiedOnSpellCast()
     {
         return _isNotifiedOnSpellCast;
-    }
-
-    public void SetIsNotifiedOnSpellCast(boolean value)
-    {
-        _isNotifiedOnSpellCast = value;
     }
 
     public double GetPlayerHealthHalfHearts()
@@ -153,8 +146,68 @@ public class MoleHuntSettings
         return _playerHealthHalfHearts;
     }
 
-    public void SetPlayerHealthHalfHearts(double value)
+    public boolean SetValue(String fieldName, Object value)
     {
-        _playerHealthHalfHearts = value;
+        Objects.requireNonNull(fieldName, "fieldName is null");
+
+        Field TargetField = GetProperties().stream().filter(
+                field -> field.getName().equals(fieldName)).findFirst()
+                .orElse(null);
+
+        if (TargetField == null)
+        {
+            return false;
+        }
+        return SetValue(TargetField, value);
+    }
+
+    public boolean SetValue(Field field, Object value)
+    {
+        Objects.requireNonNull(field, "field is null");
+        if (!field.getDeclaringClass().equals(this.getClass()))
+        {
+            return false;
+        }
+
+        try
+        {
+            SetField(field, value);
+            return true;
+        }
+        catch (IllegalAccessException e)
+        {
+            return false;
+        }
+    }
+
+    public List<Field> GetProperties()
+    {
+        List<Field> Properties = Arrays.stream(MoleHuntSettings.class.getDeclaredFields()).filter(
+                property -> Stream.of(IntGameProperty.class, FloatGameProperty.class, BooleanGameProperty.class)
+                        .anyMatch(type -> property.getAnnotation(type) != null)).toList();
+        Bukkit.getLogger().warning("Count: %d".formatted(Properties.size()));
+        return Properties;
+    }
+
+    public String GetPropertyName(Field field)
+    {
+        IntGameProperty IntProperty = field.getAnnotation(IntGameProperty.class);
+        if (IntProperty != null)
+        {
+            return IntProperty.Name();
+        }
+
+        FloatGameProperty FloatProperty = field.getAnnotation(FloatGameProperty.class);
+        if (FloatProperty != null)
+        {
+            return FloatProperty.Name();
+        }
+
+        BooleanGameProperty BooleanProperty = field.getAnnotation(BooleanGameProperty.class);
+        if (BooleanProperty != null)
+        {
+            return BooleanProperty.Name();
+        }
+        return null;
     }
 }

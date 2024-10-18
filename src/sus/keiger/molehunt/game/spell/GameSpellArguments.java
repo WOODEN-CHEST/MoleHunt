@@ -2,19 +2,20 @@ package sus.keiger.molehunt.game.spell;
 
 import org.bukkit.Location;
 import sus.keiger.molehunt.game.player.IGamePlayer;
+import sus.keiger.molehunt.player.IServerPlayer;
 
 import java.util.Objects;
 
 public class GameSpellArguments
 {
     // Private fields.
-    private IGamePlayer _castingPlayer;
-    private IGamePlayer _targetPlayer;
+    private IServerPlayer _castingPlayer;
+    private IServerPlayer _targetPlayer;
     private Location _lookingAtBlock;
 
 
     // Constructors.
-    public GameSpellArguments(IGamePlayer castingPlayer, IGamePlayer targetPlayer, Location lookingAtBlock)
+    public GameSpellArguments(IServerPlayer castingPlayer, IServerPlayer targetPlayer, Location lookingAtBlock)
     {
         _castingPlayer = Objects.requireNonNull(castingPlayer, "castingPlayer is null");
         _targetPlayer = targetPlayer;
@@ -23,12 +24,12 @@ public class GameSpellArguments
 
 
     // Methods.
-    public IGamePlayer GetCastingPlayer()
+    public IServerPlayer GetCastingPlayer()
     {
         return _castingPlayer;
     }
 
-    public IGamePlayer GetTargetPlayer()
+    public IServerPlayer GetTargetPlayer()
     {
         return _targetPlayer;
     }

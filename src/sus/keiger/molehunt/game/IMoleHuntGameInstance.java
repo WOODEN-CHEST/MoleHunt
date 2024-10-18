@@ -33,6 +33,8 @@ public interface IMoleHuntGameInstance extends ITickable, IAudienceMemberHolder
 
     long GetGameID();
 
+    void CastSpell(GameSpellDefinition spell, GameSpellArguments arguments);
+
     PCPluginEvent<MoleHuntPreStartEvent> GetPreStartEvent();
     PCPluginEvent<MoleHuntStartEvent> GetStartEvent();
     PCPluginEvent<MoleHuntEndEvent> GetEndEvent();

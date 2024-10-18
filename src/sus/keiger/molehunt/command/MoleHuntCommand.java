@@ -8,6 +8,7 @@ import sus.keiger.molehunt.game.MoleHuntSettings;
 import sus.keiger.molehunt.player.IPlayerStateController;
 import sus.keiger.plugincommon.command.*;
 
+import java.lang.reflect.Field;
 import java.text.NumberFormat;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -23,17 +24,6 @@ public class MoleHuntCommand
     private static final String KEYWORD_END = "end";
     private static final String KEYWORD_CANCEL = "cancel";
     private static final String KEYWORD_SETTING = "setting";
-    private static final String KEYWORD_MOLE_COUNT = "mole_count";
-    private static final String KEYWORD_GAME_TIME = "game_time";
-    private static final String KEYWORD_GRACE_PERIOD_TICKS = "grace_period_ticks";
-    private static final String KEYWORD_DOES_BORDER_SHRINK = "does_border_shrink";
-    private static final String KEYWORD_BORDER_SIZE_START = "border_size_block_start";
-    private static final String KEYWORD_BORDER_SIZE_END = "border_size_block_end";
-    private static final String KEYWORD_BORDER_SHRINK_TIME = "border_shrink_time_ticks";
-    private static final String KEYWORD_SPELL_COOLDOWN = "spell_cooldown_ticks";
-    private static final String KEYWORD_CAN_CAST_SPELLS = "can_cast_spells";
-    private static final String KEYWORD_IS_NOTIFIED_ON_SPELL_CAST = "is_notified_on_spell_cast";
-    private static final String KEYWORD_PLAYER_HEALTH_HALF_HEARTS = "player_health_half_hearts";
 
     private static final String KEY_VALUE = "value";
 
@@ -67,57 +57,51 @@ public class MoleHuntCommand
         return Command;
     }
 
+    private static CommandNode GetValueNodeFromProperty(MoleHuntCommand data, Field property)
+    {
+        if (property.getType().equals(int.class))
+        {
+            return new NumberNode(commandData -> data.SetProperty(property, commandData),
+                    null, KEY_VALUE, NumberNodeType.Integer);
+        }
+        else if (property.getType().equals(double.class))
+        {
+            return new NumberNode(commandData -> data.SetProperty(property, commandData),
+                    null, KEY_VALUE, NumberNodeType.Double);
+        }
+        else if (property.getType().equals(boolean.class))
+        {
+            return new BooleanNode(commandData -> data.SetProperty(property, commandData), KEY_VALUE);
+        }
+        throw new IllegalStateException("Unsupported property type: %s".formatted(property.getType().getName()));
+    }
+
     private static CommandNode GetSettingSubNode(MoleHuntCommand data)
     {
         CommandNode SettingNode = new KeywordNode(KEYWORD_SETTING, data::Preview, null);
 
-        CommandNode MoleCountNode = new KeywordNode(KEYWORD_MOLE_COUNT, null, KEY_VALUE);
-        MoleCountNode.AddSubNode(new NumberNode(data::SetMoleCount, null, KEY_VALUE, NumberNodeType.Integer));
-        SettingNode.AddSubNode(MoleCountNode);
-
-        CommandNode GracePeriodNode = new KeywordNode(KEYWORD_GRACE_PERIOD_TICKS, null, KEY_VALUE);
-        GracePeriodNode.AddSubNode(new NumberNode(data::SetGracePeriodTicks, null, KEY_VALUE, NumberNodeType.Integer));
-        SettingNode.AddSubNode(GracePeriodNode);
-
-        CommandNode DoesBorderShrinkNode = new KeywordNode(KEYWORD_DOES_BORDER_SHRINK, null, KEY_VALUE);
-        DoesBorderShrinkNode.AddSubNode(new BooleanNode(data::SetDoesBorderShrink, KEY_VALUE));
-        SettingNode.AddSubNode(DoesBorderShrinkNode);
-
-        CommandNode BorderSizeStartNode = new KeywordNode(KEYWORD_BORDER_SIZE_START, null, KEY_VALUE);
-        BorderSizeStartNode.AddSubNode(new NumberNode(data::SetBorderSizeStart, null,
-                KEY_VALUE, NumberNodeType.Integer));
-        SettingNode.AddSubNode(BorderSizeStartNode);
-
-        CommandNode BorderSizeEndNode = new KeywordNode(KEYWORD_BORDER_SIZE_END, null, KEY_VALUE);
-        BorderSizeEndNode.AddSubNode(new NumberNode(data::SetBorderSizeEnd, null, KEY_VALUE, NumberNodeType.Integer));
-        SettingNode.AddSubNode(BorderSizeEndNode);
-
-        CommandNode BorderShrinkTimeNode = new KeywordNode(KEYWORD_BORDER_SHRINK_TIME, null, KEY_VALUE);
-        BorderShrinkTimeNode.AddSubNode(new NumberNode(data::SetBorderShrinkTime, null,
-                KEY_VALUE, NumberNodeType.Integer));
-        SettingNode.AddSubNode(BorderShrinkTimeNode);
-
-        CommandNode SpellCooldownNode = new KeywordNode(KEYWORD_SPELL_COOLDOWN, null, KEY_VALUE);
-        SpellCooldownNode.AddSubNode(new NumberNode(data::SetSpellCooldown, null, KEY_VALUE, NumberNodeType.Integer));
-        SettingNode.AddSubNode(SpellCooldownNode);
-
-        CommandNode CanCastSpellsNode = new KeywordNode(KEYWORD_CAN_CAST_SPELLS, null, KEY_VALUE);
-        CanCastSpellsNode.AddSubNode(new BooleanNode(data::SetCanCastSpells, KEY_VALUE));
-        SettingNode.AddSubNode(CanCastSpellsNode);
-
-        CommandNode IsNotifiedNode = new KeywordNode(KEYWORD_IS_NOTIFIED_ON_SPELL_CAST, null, KEY_VALUE);
-        IsNotifiedNode.AddSubNode(new BooleanNode(data::SetIsNotifiedOnSpellCast, KEY_VALUE));
-        SettingNode.AddSubNode(IsNotifiedNode);
-
-        CommandNode HealthNode = new KeywordNode(KEYWORD_PLAYER_HEALTH_HALF_HEARTS, null, KEY_VALUE);
-        HealthNode.AddSubNode(new NumberNode(data::SetHealth, null, KEY_VALUE, NumberNodeType.Double));
-        SettingNode.AddSubNode(HealthNode);
+        for (Field Property : data._gameSettings.GetProperties())
+        {
+            KeywordNode NameNode = new KeywordNode(data._gameSettings.GetPropertyName(Property), null, KEY_VALUE);
+            NameNode.AddSubNode(GetValueNodeFromProperty(data, Property));
+            SettingNode.AddSubNode(NameNode);
+        }
 
         return SettingNode;
     }
 
 
     // Private methods.
+    private void SetProperty(Field property, CommandData data)
+    {
+        Object Value = data.GetParsedData(KEY_VALUE);
+        _gameSettings.SetValue(property, Value);
+        data.SetFeedback(Component.text("Set property \"%s\" to %s".formatted(
+                _gameSettings.GetPropertyName(property), Value.toString()))
+                .color(NamedTextColor.GREEN));
+    }
+
+
     private void Start(CommandData data)
     {
         if (_playerStateController.StartGame())
@@ -156,7 +140,7 @@ public class MoleHuntCommand
 
     private void TellSetDataFeedback(CommandData data)
     {
-        data.SetFeedback(Component.text("Updated game property!").color(NamedTextColor.GREEN));
+
     }
 
     private void Preview(CommandData data)
@@ -200,64 +184,5 @@ public class MoleHuntCommand
                 Formatter.format(_gameSettings.GetPlayerHealthHalfHearts()))).color(NamedTextColor.AQUA));
 
         data.SetFeedback(PreviewMessage.build());
-    }
-
-    private void SetMoleCount(CommandData data)
-    {
-        RangeNodeIntResult Range = data.GetParsedData(KEY_VALUE);
-
-        _gameSettings.SetMoleCountMin((int)Range.GetMin());
-        _gameSettings.SetMoleCountMin((int)Range.GetMax());
-        TellSetDataFeedback(data);
-    }
-
-    private void SetGameTime(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetGameTimeTicks);
-    }
-
-    private void SetGracePeriodTicks(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetGracePeriodTimeTicks);
-    }
-
-    private void SetDoesBorderShrink(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetDoesBorderShrink);
-    }
-
-    private void SetBorderSizeStart(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetBorderSizeStartBlocks);
-    }
-
-    private void SetBorderSizeEnd(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetBorderSizeEndBlocks);
-    }
-
-    private void SetBorderShrinkTime(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetBorderShrinkStartTimeTicks);
-    }
-
-    private void SetSpellCooldown(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetSpellCastCooldownTicks);
-    }
-
-    private void SetCanCastSpells(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetCanCastSpells);
-    }
-
-    private void SetIsNotifiedOnSpellCast(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetIsNotifiedOnSpellCast);
-    }
-
-    private void SetHealth(CommandData data)
-    {
-        SetSimpleValue(data, _gameSettings::SetPlayerHealthHalfHearts);
     }
 }

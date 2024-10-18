@@ -25,7 +25,6 @@ public class DefaultGamePlayer implements IGamePlayer
     private final IModifiablePlayerStats _stats = new PlayerStatsContainer();
     private final IServerPlayerCollection _serverPlayerCollection;
     private final GamePlayerCollection _gamePlayerCollection;
-    private final PlayerSpellData _spellData = new PlayerSpellData();
     private final IServerPlayer _serverPlayer;
 
     private final PCPluginEvent<GamePlayerLifeChangeEvent> _lifeChangeEvent = new PCPluginEvent<>();
