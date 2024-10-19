@@ -25,7 +25,6 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
     // Private fields.
     private final IMoleHuntGameInstance _moleHunt;
     private final GamePlayerCollection _gamePlayers;
-    private final GameTabListUpdater _tabUpdater;
     private final IEventDispatcher _eventDispatcher;
     private final IWorldProvider _worldProvider;
     private final TickClock _clock = new TickClock();
@@ -38,7 +37,6 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
 
     // Constructors.
     public GamePostEndStateExecutor(GamePlayerCollection gamePlayerCollection,
-                                    GameTabListUpdater tabUpdater,
                                     IEventDispatcher eventDispatcher,
                                     IWorldProvider worldProvider,
                                     IMoleHuntGameInstance moleHunt)
@@ -47,7 +45,6 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
         _moleHunt = Objects.requireNonNull(moleHunt, "moleHunt is null");
         _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
         _gamePlayers = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
-        _tabUpdater = Objects.requireNonNull(tabUpdater, "tabUpdater is null");
         _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
     }
 
@@ -60,11 +57,6 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
         {
             DeinitializePlayer(Player);
         }
-    }
-
-    private void OnParticipantAddEvent(ParticipantAddEvent event)
-    {
-        _gamePlayers.GetPlayers().forEach(this::UpdateTabForPlayer);
     }
 
     private void DeinitializePlayer(IGamePlayer player)
@@ -89,13 +81,7 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
 
     private void StartStatePlayer(IGamePlayer player)
     {
-        UpdateTabForPlayer(player);
         player.SetTargetState(GamePlayerState.PostGame);
-    }
-
-    private void UpdateTabForPlayer(IGamePlayer player)
-    {
-        _tabUpdater.UpdateNonInGameTabList(player.GetServerPlayer(), _gamePlayers);
     }
 
     private IGameTeam GetWinningTeam()
@@ -165,10 +151,7 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
         _gamePlayers.GetPlayers().forEach(this::StartStatePlayer);
         _worldProvider.GetWorlds().forEach(this::InitializeWorldNotInGame);
 
-        _moleHunt.GetParticipantRemoveEvent().Unsubscribe(this);
         _moleHunt.GetParticipantRemoveEvent().Subscribe(this, this::OnParticipantRemoveEvent);
-        _moleHunt.GetParticipantAddEvent().Unsubscribe(this);
-        _moleHunt.GetParticipantAddEvent().Subscribe(this, this::OnParticipantAddEvent);
 
         HandleTeamEnd();
     }

@@ -19,34 +19,37 @@ public class MoleHuntSettings
     @IntGameProperty(Name = "GracePeriodTicks", MinValue =1, MaxValue = Integer.MAX_VALUE)
     private int _gracePeriodTimeTicks = PCMath.SecondsToTicks(60d * 5d);
 
-    @IntGameProperty(Name = "MoleCountMin", MinValue =1, MaxValue = Integer.MAX_VALUE)
+    @IntGameProperty(Name = "MoleCountMin", MinValue = 1, MaxValue = Integer.MAX_VALUE)
     private int _moleCountMin = 1;
 
-    @IntGameProperty(Name = "MoleCountMax", MinValue =1, MaxValue = Integer.MAX_VALUE)
+    @IntGameProperty(Name = "MoleCountMax", MinValue = 1, MaxValue = Integer.MAX_VALUE)
     private int _moleCountMax = 1;
 
     @BooleanGameProperty(Name = "DoesBorderShrink")
     private boolean _doesBorderShrink = true;
 
-    @IntGameProperty(Name = "BorderSizeStart", MinValue =1, MaxValue = Integer.MAX_VALUE)
+    @IntGameProperty(Name = "BorderSizeStart", MinValue = 1, MaxValue = Integer.MAX_VALUE)
     private int _worldBorderSizeStartBlocks = 400;
 
-    @IntGameProperty(Name = "BorderSizeEnd", MinValue =1, MaxValue = Integer.MAX_VALUE)
+    @IntGameProperty(Name = "BorderSizeEnd", MinValue = 1, MaxValue = Integer.MAX_VALUE)
     private int _worldBorderSizeEndBlocks = 50;
 
-    @IntGameProperty(Name = "ShrinkStartTimeTicks", MinValue =1, MaxValue = Integer.MAX_VALUE)
+    @IntGameProperty(Name = "ShrinkStartTimeTicks", MinValue = 1, MaxValue = Integer.MAX_VALUE)
     private int _borderShrinkStartTimeTicks = PCMath.SecondsToTicks(60d * 10d);
 
-    @IntGameProperty(Name = "SpellCooldownTicks", MinValue =1, MaxValue = Integer.MAX_VALUE)
+    @IntGameProperty(Name = "SpellCooldownTicks", MinValue = 1, MaxValue = Integer.MAX_VALUE)
     private int _spellCastCooldownTicks = PCMath.SecondsToTicks(60d);
 
-    @BooleanGameProperty(Name = "CanCastSpells")
-    private boolean _canCastSpells = true;
+    @BooleanGameProperty(Name = "CanDeadCastSpells")
+    private boolean _canDeadCastSpells = true;
+
+    @BooleanGameProperty(Name = "CanAliveCastSpells")
+    private boolean _canAliveCastSpells = false;
 
     @BooleanGameProperty(Name = "IsNotifiedOnSpellCast")
     private boolean _isNotifiedOnSpellCast = true;
 
-    @FloatGameProperty(Name = "MoleCountMax", MinValue = 0.0001d, MaxValue = 1000d)
+    @FloatGameProperty(Name = "PlayerHealth", MinValue = 0.0001d, MaxValue = 1000d)
     private double _playerHealthHalfHearts = 20d;
 
 
@@ -63,7 +66,7 @@ public class MoleHuntSettings
         _worldBorderSizeEndBlocks = settings._worldBorderSizeEndBlocks;
         _borderShrinkStartTimeTicks = settings._borderShrinkStartTimeTicks;
         _spellCastCooldownTicks = settings._spellCastCooldownTicks;
-        _canCastSpells = settings._canCastSpells;
+        _canDeadCastSpells = settings._canDeadCastSpells;
     }
 
 
@@ -132,10 +135,17 @@ public class MoleHuntSettings
     {
         return _spellCastCooldownTicks;
     }
-    public boolean GetCanCastSpells()
+
+    public boolean GetCanAliveCastSpells()
     {
-        return _canCastSpells;
+        return _canAliveCastSpells;
     }
+
+    public boolean GetCanDeadCastSpells()
+    {
+        return _canDeadCastSpells;
+    }
+
     public boolean GetIsNotifiedOnSpellCast()
     {
         return _isNotifiedOnSpellCast;
@@ -182,11 +192,9 @@ public class MoleHuntSettings
 
     public List<Field> GetProperties()
     {
-        List<Field> Properties = Arrays.stream(MoleHuntSettings.class.getDeclaredFields()).filter(
+        return Arrays.stream(MoleHuntSettings.class.getDeclaredFields()).filter(
                 property -> Stream.of(IntGameProperty.class, FloatGameProperty.class, BooleanGameProperty.class)
                         .anyMatch(type -> property.getAnnotation(type) != null)).toList();
-        Bukkit.getLogger().warning("Count: %d".formatted(Properties.size()));
-        return Properties;
     }
 
     public String GetPropertyName(Field field)

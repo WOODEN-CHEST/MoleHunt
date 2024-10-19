@@ -11,18 +11,17 @@ public abstract class GameSpellDefinition
     private String _name;
     private Set<SpellDataRequirement> _dataRequirements;
     private String _description;
-    private boolean _areDuplicatesAllowed;
+    private SpellType _type;
 
 
     // Constructors.
     public GameSpellDefinition(String name,
                                String description,
-                               boolean areDuplicatesAllowed,
+                               SpellType type,
                                SpellDataRequirement ... requirements)
     {
         _name = Objects.requireNonNull(name, "name is null");
         _description = Objects.requireNonNull(description, "description is null");
-        _areDuplicatesAllowed = areDuplicatesAllowed;
         _dataRequirements = Arrays.stream(requirements).collect(Collectors.toSet());
     }
 
@@ -43,10 +42,10 @@ public abstract class GameSpellDefinition
         return _dataRequirements;
     }
 
-    public boolean GetAreDuplicatesAllowed()
+    public SpellType GetType()
     {
-        return _areDuplicatesAllowed;
+        return _type;
     }
 
-    public abstract GameSpell CreateSpell(GameSpellArguments args);
+    public abstract GameSpell CreateSpell(GameSpellArguments args, SpellServiceProvider services);
 }

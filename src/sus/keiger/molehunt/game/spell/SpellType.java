@@ -1,7 +1,7 @@
 package sus.keiger.molehunt.game.spell;
 
-public enum GameSpellType
+public enum SpellType
 {
     Instant,
-    WithDuration
+    Sustained
 }

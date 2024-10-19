@@ -156,6 +156,11 @@ public class GamePlayerCollection implements IAudienceMemberHolder
         return _teams.get(Objects.requireNonNull(type, "type is null"));
     }
 
+    public boolean ContainsParticipant(IServerPlayer participant)
+    {
+        return ContainsSpectator(participant) || ContainsPlayer(participant);
+    }
+
 
     // Private methods.
     private void UpdatePlayerLists()

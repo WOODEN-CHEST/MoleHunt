@@ -24,7 +24,6 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
     // Private fields.
     private final IMoleHuntGameInstance _moleHunt;
     private final GamePlayerCollection _gamePlayers;
-    private final GameTabListUpdater _tabUpdater;
     private final IEventDispatcher _eventDispatcher;
     private final IWorldProvider _worldProvider;
     private final TickClock _clock = new TickClock();
@@ -36,7 +35,6 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
 
     // Constructors.
     public GamePreStartStateExecutor(GamePlayerCollection gamePlayerCollection,
-                                     GameTabListUpdater tabUpdater,
                                      IEventDispatcher eventDispatcher,
                                      IWorldProvider worldProvider,
                                      IMoleHuntGameInstance moleHunt)
@@ -45,7 +43,6 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
         _moleHunt = Objects.requireNonNull(moleHunt, "moleHunt is null");
         _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
         _gamePlayers = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
-        _tabUpdater = Objects.requireNonNull(tabUpdater, "tabUpdater is null");
         _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
     }
 
@@ -60,11 +57,6 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
         }
     }
 
-    private void OnParticipantAddEvent(ParticipantAddEvent event)
-    {
-        _gamePlayers.GetPlayers().forEach(this::UpdateTabForPlayer);
-    }
-
     private void DeinitializePlayer(IGamePlayer player)
     {
         player.UnsubscribeFromEvents(_eventDispatcher);
@@ -76,12 +68,6 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
     {
         player.SetTargetState(GamePlayerState.PreGame);
         player.SubscribeToEvents(_eventDispatcher);
-       UpdateTabForPlayer(player);
-    }
-
-    private void UpdateTabForPlayer(IGamePlayer player)
-    {
-        _tabUpdater.UpdateNonInGameTabList(player.GetServerPlayer(), _gamePlayers);
     }
 
     private void ShowStartCountdownContent()
@@ -128,10 +114,7 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
         GameWorldInitializer WorldInitializer = new GameWorldInitializer();
         _worldProvider.GetWorlds().forEach(WorldInitializer::InitializeWorldNotInGame);
 
-        _moleHunt.GetParticipantRemoveEvent().Unsubscribe(this);
         _moleHunt.GetParticipantRemoveEvent().Subscribe(this, this::OnParticipantRemoveEvent);
-        _moleHunt.GetParticipantAddEvent().Unsubscribe(this);
-        _moleHunt.GetParticipantAddEvent().Subscribe(this, this::OnParticipantAddEvent);
     }
 
     @Override

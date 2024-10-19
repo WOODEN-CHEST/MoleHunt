@@ -30,4 +30,6 @@ public interface IEventDispatcher extends Listener
     PCPluginEvent<PlayerDropItemEvent> GetPlayerDropItemEvent();
     PCPluginEvent<PrePlayerAttackEntityEvent> GetPrePlayerAttackEntityEvent();
     PCPluginEvent<InventoryOpenEvent> GetInventoryOpenEvent();
+    PCPluginEvent<PlayerAdvancementDoneEvent> GetAdvancementDoneEvent();
+
 }

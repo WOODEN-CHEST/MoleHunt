@@ -13,6 +13,7 @@ import sus.keiger.molehunt.game.MoleHuntGameState;
 import sus.keiger.molehunt.game.MoleHuntInstance;
 import sus.keiger.molehunt.game.MoleHuntSettings;
 import sus.keiger.molehunt.game.event.MoleHuntCompleteEvent;
+import sus.keiger.molehunt.game.spell.GameSpellCollection;
 import sus.keiger.molehunt.lobby.IServerLobby;
 import sus.keiger.plugincommon.IIDProvider;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
@@ -32,6 +33,7 @@ public class DefaultPlayerStateController implements IPlayerStateController
     private final MoleHuntSettings _gameSettings;
     private final IServerLobby _lobby;
     private IMoleHuntGameInstance _currentGameInstance;
+    private GameSpellCollection _spells;
 
 
     // Constructors.
@@ -41,7 +43,8 @@ public class DefaultPlayerStateController implements IPlayerStateController
                                         IEventDispatcher eventDispatcher,
                                         IServerPlayerCollection players,
                                         MoleHuntSettings gameSettings,
-                                        IServerLobby lobby)
+                                        IServerLobby lobby,
+                                        GameSpellCollection spells)
     {
         _idProvider = Objects.requireNonNull(idProvider, "idProvider is null");
         _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
@@ -50,6 +53,7 @@ public class DefaultPlayerStateController implements IPlayerStateController
         _players = Objects.requireNonNull(players, "players is null");
         _gameSettings = Objects.requireNonNull(gameSettings, "gameSettings is null");
         _lobby = Objects.requireNonNull(lobby, "lobby is null");
+        _spells = Objects.requireNonNull(spells, "spells is null");
 
         CreateNewGameInstance();
     }
@@ -83,7 +87,6 @@ public class DefaultPlayerStateController implements IPlayerStateController
         }
         else
         {
-            Bukkit.getLogger().warning("Added spectator");
             _currentGameInstance.AddSpectator(_players.GetPlayer(event.getPlayer()));
         }
     }

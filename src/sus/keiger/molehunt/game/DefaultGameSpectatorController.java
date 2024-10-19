@@ -1,5 +1,6 @@
 package sus.keiger.molehunt.game;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import sus.keiger.molehunt.game.player.GamePlayerCollection;
@@ -15,9 +16,8 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
     // Private fields.
     private final GamePlayerCollection _players;
     private final GameScoreboard _gameScoreboard;
-    private final GameTabListUpdater _tabUpdater;
     private final IGameLocationProvider _locationProvider;
-    private MoleHuntGameState _state;
+    private MoleHuntGameState _state = MoleHuntGameState.PreGame;
 
 
 
@@ -25,12 +25,10 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
     // Constructors.
     public DefaultGameSpectatorController(GamePlayerCollection players,
                                           GameScoreboard gameScoreboard,
-                                          GameTabListUpdater tabUpdater,
                                           IGameLocationProvider locationProvider)
     {
         _players = Objects.requireNonNull(players, "players is null");
         _gameScoreboard = Objects.requireNonNull(gameScoreboard, "gameScoreboard is null");;
-        _tabUpdater = Objects.requireNonNull(tabUpdater, "tabUpdater is null");
         _locationProvider = Objects.requireNonNull(locationProvider, "locationProvider is null");
     }
 
@@ -70,7 +68,6 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
     private void InitInGameSpectator(IServerPlayer player)
     {
         _gameScoreboard.SetIsBoardEnabledForPlayer(player, true);
-        _tabUpdater.UpdateSpectatorTabList(player, _players);
     }
 
     private void InitPostGameSpectator(IServerPlayer player)
@@ -86,7 +83,6 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
     private void ClearSpectator(IServerPlayer player)
     {
         _gameScoreboard.SetIsBoardEnabledForPlayer(player, false);
-        _tabUpdater.UpdateNonInGameTabList(player, _players);
     }
 
 

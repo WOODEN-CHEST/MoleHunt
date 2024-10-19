@@ -6,6 +6,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
+import org.bukkit.advancement.Advancement;
+import org.bukkit.entity.Player;
 import sus.keiger.molehunt.IWorldProvider;
 import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.game.event.*;
@@ -16,6 +18,7 @@ import sus.keiger.plugincommon.TickClock;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,7 +27,6 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     // Private fields.
     private final IMoleHuntGameInstance _moleHunt;
     private final GamePlayerCollection _gamePlayers;
-    private final GameTabListUpdater _tabUpdater;
     private final IWorldProvider _worldProvider;
     private final MoleHuntSettings _settings;
     private final IGameLocationProvider _locationProvider;
@@ -42,7 +44,6 @@ public class InGameStateExecutor extends GenericGameStateExecutor
 
     // Constructors.
     public InGameStateExecutor(GamePlayerCollection gamePlayerCollection,
-                               GameTabListUpdater tabUpdater,
                                IWorldProvider worldProvider,
                                MoleHuntSettings settings,
                                IEventDispatcher eventDispatcher,
@@ -52,7 +53,6 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     {
         super(MoleHuntGameState.InGame);
         _gamePlayers = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
-        _tabUpdater = Objects.requireNonNull(tabUpdater, "tabUpdater is null");
         _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
         _settings = Objects.requireNonNull(settings, "settings is null");
         _locationProvider = Objects.requireNonNull(locationProvider, "locationProvider is null");
@@ -70,17 +70,6 @@ public class InGameStateExecutor extends GenericGameStateExecutor
         {
             DeinitializePlayer(Player);
         }
-        _gamePlayers.GetPlayers().forEach(this::UpdateTabForPlayer);
-    }
-
-    private void OnParticipantAddEvent(ParticipantAddEvent event)
-    {
-        _gamePlayers.GetPlayers().forEach(this::UpdateTabForPlayer);
-    }
-
-    private void UpdateTabForPlayer(IGamePlayer player)
-    {
-        _tabUpdater.UpdateGamePlayerTabList(player, _gamePlayers);
     }
 
     private void DeinitializePlayer(IGamePlayer player)
@@ -93,7 +82,6 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     {
         _scoreboard.RemoveFromTeam(player.GetServerPlayer());
         _scoreboard.SetIsBoardEnabledForPlayer(player.GetServerPlayer(), false);
-        _tabUpdater.UpdateNonInGameTabList(player.GetServerPlayer(), _gamePlayers);
     }
 
     private void TestGameEndConditions()
@@ -144,7 +132,7 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     {
         WorldBorder Border = world.getWorldBorder();
         Border.setSize(_settings.GetBorderSizeEndBlocks(),
-                _settings.GetBorderShrinkStartTimeTicks() / PCMath.TICKS_IN_SECOND);
+                _clock.GetTicksLeft() / PCMath.TICKS_IN_SECOND);
     }
 
     private void ShowStartContent(IGamePlayer player)
@@ -172,16 +160,31 @@ public class InGameStateExecutor extends GenericGameStateExecutor
         _gamePlayers.GetActivePlayers().forEach(player -> player.SetMayDealDamage(true));
     }
 
+    private void RevokeAdvancements(IGamePlayer player)
+    {
+        Iterator<Advancement> AdvancementIterator = Bukkit.advancementIterator();
+        Player MCPlayer = player.GetMCPlayer();
+
+        while (AdvancementIterator.hasNext())
+        {
+            Advancement TargetAdvancement = AdvancementIterator.next();
+            for (String Criteria : TargetAdvancement.getCriteria())
+            {
+                MCPlayer.getAdvancementProgress(TargetAdvancement).revokeCriteria(Criteria);
+            }
+        }
+    }
+
     private void StartStatePlayer(IGamePlayer player)
     {
         _scoreboard.SetIsBoardEnabledForPlayer(player.GetServerPlayer(), true);
         player.GetMaxHealth().SetBaseValue(_settings.GetPlayerHealthHalfHearts());
         player.SetTargetState(GamePlayerState.InGame);
         player.GetMCPlayer().teleport(_locationProvider.GetRandomCenterLocation());
-        ShowStartContent(player);
         _scoreboard.AddToTeam(player.GetServerPlayer());
         player.SetMayDealDamage(_graceClock.GetTicksLeft() <= 0);
-        UpdateTabForPlayer(player);
+        RevokeAdvancements(player);
+        ShowStartContent(player);
     }
 
     private void StartBorderShrink()
@@ -212,6 +215,14 @@ public class InGameStateExecutor extends GenericGameStateExecutor
         }
 
         TestGameEndConditions();
+    }
+
+    private void AssignRoles()
+    {
+        IRoleAssigner RoleAssigned = new RandomRoleAssigner();
+        int MinMoles = _settings.GetMoleCountMin();
+        int MaxMoles = Math.max(MinMoles, _settings.GetMoleCountMax());
+        RoleAssigned.AssignRoles(_gamePlayers, MinMoles, MaxMoles);
     }
 
 
@@ -245,14 +256,10 @@ public class InGameStateExecutor extends GenericGameStateExecutor
         _worldProvider.GetWorlds().forEach(world -> WorldInitializer.InitializeWorldInGame(world,
                 _settings.GetBorderSizeStartBlocks()));
 
-        IRoleAssigner RoleAssigned = new RandomRoleAssigner();
-        RoleAssigned.AssignRoles(_gamePlayers, _settings.GetMoleCountMin(), _settings.GetMoleCountMax());
+        AssignRoles();
         _gamePlayers.GetPlayers().forEach(this::StartStatePlayer);
 
-        _moleHunt.GetParticipantRemoveEvent().Unsubscribe(this);
         _moleHunt.GetParticipantRemoveEvent().Subscribe(this, this::OnParticipantRemoveEvent);
-        _moleHunt.GetParticipantAddEvent().Unsubscribe(this);
-        _moleHunt.GetParticipantAddEvent().Subscribe(this, this::OnParticipantAddEvent);
     }
 
     @Override

@@ -4,6 +4,7 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameMode;
+import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
@@ -12,6 +13,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.util.Vector;
 import sus.keiger.molehunt.MoleHuntPlugin;
 import sus.keiger.molehunt.game.GameTeamType;
+import sus.keiger.molehunt.game.IGameTeam;
 import sus.keiger.molehunt.player.IServerPlayerCollection;
 import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.entity.EntityFunctions;
@@ -34,6 +36,8 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
     private final double PENALTY_ENTITY_REACH_SCALE = 0.95d;
     private final double BOOST_KILL_MOLE_ON_INNOCENT_HEALTH_FACTOR = 1.1d;
     private final double BOOST_KILL_INNOCENT_ON_MOLE_HEALTH_FACTOR = 1.15d;
+    private final double MOLE_PARTICLE_OFFSET_DELTA = 0.5d;
+    private final float MOLE_PARTICLE_SIZE = 0.75f;
 
 
     // Constructors.
@@ -77,6 +81,26 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
         GetPlayer().GetMCPlayer().setSaturation(PlayerFunctions.MAX_SATURATION);
     }
 
+    private void ShowMoleParticle()
+    {
+        IGameTeam MoleTeam = _gamePlayerCollection.GetTeamByType(GameTeamType.Moles);
+        if (!MoleTeam.ContainsPlayer(GetPlayer()))
+        {
+            return;
+        }
+
+        for (IGamePlayer Teammate : MoleTeam.GetPlayers())
+        {
+            if (Teammate == GetPlayer())
+            {
+                continue;
+            }
+            GetPlayer().SpawnParticle(Particle.DUST, GetPlayer().GetMCPlayer().getEyeLocation(),
+                    MOLE_PARTICLE_OFFSET_DELTA, MOLE_PARTICLE_OFFSET_DELTA, MOLE_PARTICLE_OFFSET_DELTA,
+                    1, 1d, new Particle.DustOptions(MoleTeam.GetColor(), MOLE_PARTICLE_SIZE));
+        }
+    }
+
     private void PreGameTick()
     {
         ResetFood();
@@ -86,6 +110,7 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
     {
         ShowNearestPlayerDistance();
         UpdateAttributes();
+        ShowMoleParticle();
     }
 
     private void PostGameTick()

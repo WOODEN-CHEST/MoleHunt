@@ -5,11 +5,13 @@ import sus.keiger.molehunt.game.event.*;
 import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.molehunt.game.player.IPlayerStats;
 import sus.keiger.molehunt.game.spell.GameSpellArguments;
+import sus.keiger.molehunt.game.spell.GameSpellCollection;
 import sus.keiger.molehunt.game.spell.GameSpellDefinition;
 import sus.keiger.molehunt.player.IAudienceMemberHolder;
 import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.plugincommon.ITickable;
 import sus.keiger.plugincommon.PCPluginEvent;
+import sus.keiger.plugincommon.command.CommandData;
 
 import java.util.List;
 
@@ -18,7 +20,8 @@ public interface IMoleHuntGameInstance extends ITickable, IAudienceMemberHolder
     boolean AddPlayer(IServerPlayer player);
     boolean ContainsPlayer(IServerPlayer player);
     boolean ContainsActivePlayer(IServerPlayer player);
-    IGamePlayer GetGamePlayer(IServerPlayer player);
+    List<IGamePlayer> GetActivePlayers();
+    List<IGamePlayer> GetPlayers();
 
     boolean Start();
     boolean End();
@@ -33,7 +36,8 @@ public interface IMoleHuntGameInstance extends ITickable, IAudienceMemberHolder
 
     long GetGameID();
 
-    void CastSpell(GameSpellDefinition spell, GameSpellArguments arguments);
+    void CastSpell(GameSpellDefinition definition, GameSpellArguments args);
+
 
     PCPluginEvent<MoleHuntPreStartEvent> GetPreStartEvent();
     PCPluginEvent<MoleHuntStartEvent> GetStartEvent();

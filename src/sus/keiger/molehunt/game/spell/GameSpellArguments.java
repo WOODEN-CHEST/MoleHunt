@@ -11,15 +11,13 @@ public class GameSpellArguments
     // Private fields.
     private IServerPlayer _castingPlayer;
     private IServerPlayer _targetPlayer;
-    private Location _lookingAtBlock;
 
 
     // Constructors.
-    public GameSpellArguments(IServerPlayer castingPlayer, IServerPlayer targetPlayer, Location lookingAtBlock)
+    public GameSpellArguments(IServerPlayer castingPlayer, IServerPlayer targetPlayer)
     {
         _castingPlayer = Objects.requireNonNull(castingPlayer, "castingPlayer is null");
         _targetPlayer = targetPlayer;
-        _lookingAtBlock = lookingAtBlock;
     }
 
 
@@ -32,10 +30,5 @@ public class GameSpellArguments
     public IServerPlayer GetTargetPlayer()
     {
         return _targetPlayer;
-    }
-
-    public Location GetLookingAtBlock()
-    {
-        return _lookingAtBlock;
     }
 }

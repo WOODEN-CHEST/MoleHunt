@@ -10,6 +10,7 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
+import sus.keiger.molehunt.command.SpellCommand;
 import sus.keiger.molehunt.event.*;
 import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.player.*;
@@ -113,15 +114,6 @@ public class DefaultGamePlayer implements IGamePlayer
     private void OnPlayerDropItemEvent(PlayerDropItemEvent event)
     {
         _executor.OnPlayerDropItemEvent(event);
-    }
-
-    private void OnPlayerCommandPreProcessEvent(PlayerCommandPreprocessEvent event)
-    {
-        if ((_serverPlayerCollection.GetPlayer(event.getPlayer()) == _serverPlayer) && !_serverPlayer.IsAdmin())
-        {
-            event.setCancelled(true);
-            SendMessage(Component.text("Cannot send commands during MoleHunt.").color(NamedTextColor.RED));
-        }
     }
 
 
@@ -234,7 +226,6 @@ public class DefaultGamePlayer implements IGamePlayer
         dispatcher.GetBlockPlaceEvent().Subscribe(this, this::OnBlockPlaceEvent);
         dispatcher.GetPlayerInteractEvent().Subscribe(this, this::OnPlayerInteractEvent);
         dispatcher.GetPlayerDropItemEvent().Subscribe(this, this::OnPlayerDropItemEvent);
-        dispatcher.GetPlayerCommandPreprocessEvent().Subscribe(this, this::OnPlayerCommandPreProcessEvent);
     }
 
     @Override
@@ -247,7 +238,6 @@ public class DefaultGamePlayer implements IGamePlayer
         dispatcher.GetBlockPlaceEvent().Unsubscribe(this);
         dispatcher.GetPlayerInteractEvent().Unsubscribe(this);
         dispatcher.GetPlayerDropItemEvent().Unsubscribe(this);
-        dispatcher.GetPlayerCommandPreprocessEvent().Unsubscribe(this);
     }
 
     @Override

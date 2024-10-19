@@ -33,6 +33,7 @@ public class DefaultEventDispatcher implements IEventDispatcher
     private final PCPluginEvent<PlayerDropItemEvent> _playerDropItemEvent = new PCPluginEvent<>();
     private final PCPluginEvent<PrePlayerAttackEntityEvent> _prePlayerAttackEntityEvent = new PCPluginEvent<>();
     private final PCPluginEvent<InventoryOpenEvent> _inventoryOpenEvent = new PCPluginEvent<>();
+    private final PCPluginEvent<PlayerAdvancementDoneEvent> _advancementDoneEvent = new PCPluginEvent<>();
 
 
     // Constructors.
@@ -133,6 +134,12 @@ public class DefaultEventDispatcher implements IEventDispatcher
         _inventoryOpenEvent.FireEvent(event);
     }
 
+    @EventHandler
+    private void OnAdvancementDoneEvent(PlayerAdvancementDoneEvent event)
+    {
+        _advancementDoneEvent.FireEvent(event);
+    }
+
 
     // Inherited methods.
     @Override
@@ -217,6 +224,12 @@ public class DefaultEventDispatcher implements IEventDispatcher
     public PCPluginEvent<InventoryOpenEvent> GetInventoryOpenEvent()
     {
         return _inventoryOpenEvent;
+    }
+
+    @Override
+    public PCPluginEvent<PlayerAdvancementDoneEvent> GetAdvancementDoneEvent()
+    {
+        return _advancementDoneEvent;
     }
 
     @Override

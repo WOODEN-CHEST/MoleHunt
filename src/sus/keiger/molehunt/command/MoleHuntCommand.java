@@ -3,13 +3,12 @@ package sus.keiger.molehunt.command;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import sus.keiger.molehunt.MoleHuntPlugin;
+import org.bukkit.Bukkit;
 import sus.keiger.molehunt.game.MoleHuntSettings;
 import sus.keiger.molehunt.player.IPlayerStateController;
 import sus.keiger.plugincommon.command.*;
 
 import java.lang.reflect.Field;
-import java.text.NumberFormat;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -34,7 +33,7 @@ public class MoleHuntCommand
 
 
     // Constructors.
-    public MoleHuntCommand(IPlayerStateController playerStateController, MoleHuntSettings gameSettings)
+    private MoleHuntCommand(IPlayerStateController playerStateController, MoleHuntSettings gameSettings)
     {
         _playerStateController = Objects.requireNonNull(playerStateController, "playerStateController is null");
         _gameSettings = Objects.requireNonNull(gameSettings, "gameSettings is null");
@@ -42,8 +41,8 @@ public class MoleHuntCommand
 
 
     // Static methods.
-    public static ServerCommand GetCommand(IPlayerStateController playerStateController,
-                                           MoleHuntSettings gameSettings)
+    public static ServerCommand CreateCommand(IPlayerStateController playerStateController,
+                                              MoleHuntSettings gameSettings)
     {
         ServerCommand Command = new ServerCommand(LABEL, null);
 
@@ -131,57 +130,26 @@ public class MoleHuntCommand
         _playerStateController.GetActiveGameInstance().Cancel();
     }
 
-    private <T> void SetSimpleValue(CommandData data, Consumer<T> setter)
-    {
-        T Value = data.GetParsedData(KEY_VALUE);
-        setter.accept(Value);
-        TellSetDataFeedback(data);
-    }
-
-    private void TellSetDataFeedback(CommandData data)
-    {
-
-    }
-
     private void Preview(CommandData data)
     {
         TextComponent.Builder PreviewMessage = Component.text();
-
-        NumberFormat Formatter = MoleHuntPlugin.GetNumberFormat("0.00");
-
         PreviewMessage.append(Component.text("Game settings: ").color(NamedTextColor.GREEN));
-        PreviewMessage.append(Component.text("\nMole count: %d to %d ".formatted(_gameSettings.GetMoleCountMin(),
-                _gameSettings.GetMoleCountMax())).color(NamedTextColor.AQUA));
 
-        PreviewMessage.append(Component.text("\nGame Time Ticks: %d ".formatted(_gameSettings.GetGameTimeTicks()))
-                .color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nGrace Period Ticks: %d ".formatted(
-                _gameSettings.GetGracePeriodTimeTicks())).color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nDoes Border Shrink: %b ".formatted(
-                _gameSettings.GetDoesBorderShrink())).color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nBorder Shrink Start Time Ticks: %d ".formatted(
-                _gameSettings.GetBorderShrinkStartTimeTicks())).color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nBorder Start Size Blocks: %d ".formatted(
-                _gameSettings.GetBorderSizeStartBlocks())).color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nBorder End Size Blocks: %d ".formatted(
-                _gameSettings.GetBorderSizeEndBlocks())).color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nSpell Cast Cooldown Ticks: %d ".formatted(
-                _gameSettings.GetSpellCastCooldownTicks())).color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nCan Cast Spells: %b ".formatted(
-                _gameSettings.GetCanCastSpells())).color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nDo Spells Notify: %b ".formatted(
-                _gameSettings.GetIsNotifiedOnSpellCast())).color(NamedTextColor.AQUA));
-
-        PreviewMessage.append(Component.text("\nPlayer Health Half Hearts: %s ".formatted(
-                Formatter.format(_gameSettings.GetPlayerHealthHalfHearts()))).color(NamedTextColor.AQUA));
+        try
+        {
+            for (Field Property : _gameSettings.GetProperties())
+            {
+                Property.setAccessible(true);
+                PreviewMessage.append(Component.text("\n%s: %s".formatted(_gameSettings.GetPropertyName(Property),
+                        Property.get(_gameSettings).toString())).color(NamedTextColor.AQUA));
+            }
+        }
+        catch (IllegalAccessException e)
+        {
+            data.SetFeedback(Component.text("Failed to preview game settings due to an internal error.")
+                    .color(NamedTextColor.RED));
+            return;
+        }
 
         data.SetFeedback(PreviewMessage.build());
     }

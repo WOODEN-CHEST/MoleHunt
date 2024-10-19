@@ -1,10 +1,12 @@
 package sus.keiger.molehunt.game.player;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
+import org.bukkit.util.RayTraceResult;
 import sus.keiger.molehunt.player.IServerPlayerCollection;
 
 import java.util.Objects;
@@ -13,6 +15,7 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
 {
     // Private fields.
     private GamePlayerState _state = GamePlayerState.PreGame;
+    private double MAX_RAY_TRACE_DISTANCE = 64d;
 
 
     // Constructors.

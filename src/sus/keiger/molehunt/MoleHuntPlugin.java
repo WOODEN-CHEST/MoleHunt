@@ -1,29 +1,27 @@
 package sus.keiger.molehunt;
 
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.wrappers.EnumWrappers;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
 import sus.keiger.molehunt.command.MoleHuntCommand;
+import sus.keiger.molehunt.command.SpellCommand;
 import sus.keiger.molehunt.event.*;
 import sus.keiger.molehunt.game.MoleHuntSettings;
+import sus.keiger.molehunt.game.spell.GameSpellCollection;
+import sus.keiger.molehunt.game.spell.HealthScrambleSpellDefinition;
+import sus.keiger.molehunt.game.spell.HeartBeatSpellDefinition;
 import sus.keiger.molehunt.lobby.*;
 import sus.keiger.molehunt.player.DefaultServerPlayerCollection;
 import sus.keiger.molehunt.player.*;
 import sus.keiger.plugincommon.IIDProvider;
 import sus.keiger.plugincommon.ITickable;
 import sus.keiger.plugincommon.SequentialIDProvider;
-import sus.keiger.plugincommon.command.CommandData;
 import sus.keiger.plugincommon.command.ServerCommand;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
-import sus.keiger.plugincommon.packet.clientbound.PacketPlayerInfo;
-import sus.keiger.plugincommon.packet.clientbound.PlayerInfoRemovePacket;
-import sus.keiger.plugincommon.packet.clientbound.PlayerInfoUpdatePacket;
+import sus.keiger.plugincommon.packet.clientbound.SetEntityMetaDataPacket;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -73,11 +71,28 @@ public class MoleHuntPlugin extends JavaPlugin
         return new DefaultServerLobby(players, SpawnLocation, Bounds, eventDispatcher);
     }
 
-    private void RegisterCommands(IPlayerStateController playerStateController, MoleHuntSettings settings)
+    private void RegisterCommands(IPlayerStateController playerStateController,
+                                  MoleHuntSettings settings,
+                                  IServerPlayerCollection serverPlayers,
+                                  GameSpellCollection spells)
     {
-        ServerCommand Command = MoleHuntCommand.GetCommand(playerStateController, settings);
-        Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setTabCompleter(Command);
-        Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setExecutor(Command);
+        ServerCommand MCommand = MoleHuntCommand.CreateCommand(playerStateController, settings);
+        Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setTabCompleter(MCommand);
+        Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setExecutor(MCommand);
+
+        ServerCommand SCommand = SpellCommand.CreateCommand(playerStateController, spells, serverPlayers);
+        Bukkit.getPluginCommand(SpellCommand.LABEL).setTabCompleter(SCommand);
+        Bukkit.getPluginCommand(SpellCommand.LABEL).setExecutor(SCommand);
+    }
+
+    private GameSpellCollection GetSpellCollection()
+    {
+        GameSpellCollection Spells = new GameSpellCollection();
+
+        Spells.AddSpell(new HeartBeatSpellDefinition());
+        Spells.AddSpell(new HealthScrambleSpellDefinition());
+
+        return Spells;
     }
 
 
@@ -94,6 +109,8 @@ public class MoleHuntPlugin extends JavaPlugin
 
 
         // Create server components.
+        GameSpellCollection Spells = GetSpellCollection();
+
         IEventDispatcher EventDispatcher = new DefaultEventDispatcher(Players);
         IPlayerExistenceController ExistenceController = new PlayerExistenceController(Players);
 
@@ -101,8 +118,7 @@ public class MoleHuntPlugin extends JavaPlugin
 
         MoleHuntSettings GameSettings = new MoleHuntSettings();
         IPlayerStateController PlayerStateController = new DefaultPlayerStateController(GameIDProvider,
-                PacketController, WorldProvider, EventDispatcher, Players,GameSettings, Lobby);
-
+                PacketController, WorldProvider, EventDispatcher, Players,GameSettings, Lobby, Spells);
 
         // Initialize created components and objects.
         InitializeWorlds(WorldProvider);
@@ -118,12 +134,9 @@ public class MoleHuntPlugin extends JavaPlugin
 
 
         // Commands.
-        RegisterCommands(PlayerStateController, GameSettings);
+        RegisterCommands(PlayerStateController, GameSettings, Players, Spells);
     }
 
     @Override
-    public void onDisable()
-    {
-
-    }
+    public void onDisable() { }
 }

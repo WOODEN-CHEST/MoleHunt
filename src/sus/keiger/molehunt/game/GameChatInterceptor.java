@@ -15,11 +15,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-public class GameChatInterceptor implements IMoleHuntEventListener
+public class GameChatInterceptor implements IMoleHuntEventListener, IGameStateContaining
 {
     // Private fields.
     private final GamePlayerCollection _gamePlayers;
     private final IServerPlayerCollection _serverPlayers;
+    private MoleHuntGameState _state = MoleHuntGameState.Initializing;
 
 
     // Constructors.
@@ -84,7 +85,7 @@ public class GameChatInterceptor implements IMoleHuntEventListener
     private List<IServerPlayer> GetSpectatorTargets()
     {
         return Stream.concat(_gamePlayers.GetSpectators().stream(), _gamePlayers.GetActivePlayers().stream()
-                .filter(IGamePlayer::IsAlive).map(IGamePlayer::GetServerPlayer)).toList();
+                .filter(player -> !player.IsAlive()).map(IGamePlayer::GetServerPlayer)).toList();
     }
 
 
@@ -99,5 +100,11 @@ public class GameChatInterceptor implements IMoleHuntEventListener
     public void UnsubscribeFromEvents(IEventDispatcher dispatcher)
     {
         dispatcher.GetAsyncChatEvent().Unsubscribe(this);
+    }
+
+    @Override
+    public void SetState(MoleHuntGameState state)
+    {
+        _state = Objects.requireNonNull(state, "state is null");
     }
 }
