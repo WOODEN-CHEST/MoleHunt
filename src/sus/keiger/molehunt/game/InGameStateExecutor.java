@@ -8,8 +8,6 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.entity.Player;
-import sus.keiger.molehunt.IWorldProvider;
-import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.game.event.*;
 import sus.keiger.molehunt.game.player.*;
 import sus.keiger.plugincommon.ITickable;
@@ -26,15 +24,10 @@ public class InGameStateExecutor extends GenericGameStateExecutor
 {
     // Private fields.
     private final IMoleHuntGameInstance _moleHunt;
-    private final GamePlayerCollection _gamePlayers;
-    private final IWorldProvider _worldProvider;
-    private final MoleHuntSettings _settings;
-    private final IGameLocationProvider _locationProvider;
-    private final IEventDispatcher _eventDispatcher;
+    private final IGameServices _gameServices;
     private final TickClock _clock = new TickClock();
     private final TickClock _graceClock = new TickClock();
-    private final TickClock _borderBlock = new TickClock();
-    private final GameScoreboard _scoreboard;
+    private final TickClock _borderClock = new TickClock();
     private final TickTimeConverter _timeConverter = new TickTimeConverter();
 
     private final int TITLE_FADE_IN_MILLISECONDS = 500;
@@ -43,29 +36,18 @@ public class InGameStateExecutor extends GenericGameStateExecutor
 
 
     // Constructors.
-    public InGameStateExecutor(GamePlayerCollection gamePlayerCollection,
-                               IWorldProvider worldProvider,
-                               MoleHuntSettings settings,
-                               IEventDispatcher eventDispatcher,
-                               IGameLocationProvider locationProvider,
-                               IMoleHuntGameInstance moleHunt,
-                               GameScoreboard scoreBoard)
+    public InGameStateExecutor(IGameServices services, IMoleHuntGameInstance game)
     {
         super(MoleHuntGameState.InGame);
-        _gamePlayers = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
-        _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
-        _settings = Objects.requireNonNull(settings, "settings is null");
-        _locationProvider = Objects.requireNonNull(locationProvider, "locationProvider is null");
-        _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
-        _moleHunt = Objects.requireNonNull(moleHunt, "moleHunt is null");
-        _scoreboard = Objects.requireNonNull(scoreBoard, "scoreBoard is null");
+        _moleHunt = Objects.requireNonNull(game, "game is null");
+        _gameServices = Objects.requireNonNull(services, "services is null");
     }
 
 
     // Private methods.
     private void OnParticipantRemoveEvent(ParticipantRemoveEvent event)
     {
-        IGamePlayer Player = _gamePlayers.GetGamePlayer(event.GetPlayer());
+        IGamePlayer Player = _gameServices.GetGamePlayerCollection().GetGamePlayer(event.GetPlayer());
         if (Player != null)
         {
             DeinitializePlayer(Player);
@@ -74,24 +56,25 @@ public class InGameStateExecutor extends GenericGameStateExecutor
 
     private void DeinitializePlayer(IGamePlayer player)
     {
-        player.UnsubscribeFromEvents(_eventDispatcher);
+        player.UnsubscribeFromEvents(_gameServices.GetEventDispatcher());
         PlayerEndState(player);
     }
 
     private void PlayerEndState(IGamePlayer player)
     {
-        _scoreboard.RemoveFromTeam(player.GetServerPlayer());
-        _scoreboard.SetIsBoardEnabledForPlayer(player.GetServerPlayer(), false);
+        _gameServices.GetScoreBoard().RemoveFromTeam(player.GetServerPlayer());
+        _gameServices.GetScoreBoard().SetIsBoardEnabledForPlayer(player.GetServerPlayer(), false);
     }
 
     private void TestGameEndConditions()
     {
-        int AliveInnocentCount = (int)_gamePlayers.GetTeamByType(GameTeamType.Innocents).GetPlayers()
-                .stream().filter(IGamePlayer::IsAlive).count();
-        int AliveMoleCount = (int)_gamePlayers.GetTeamByType(GameTeamType.Moles).GetPlayers()
+        int AliveInnocentCount = (int)_gameServices.GetGamePlayerCollection()
+                .GetTeamByType(GameTeamType.Innocents).GetPlayers().stream().filter(IGamePlayer::IsAlive).count();
+        int AliveMoleCount = (int)_gameServices.GetGamePlayerCollection().GetTeamByType(GameTeamType.Moles).GetPlayers()
                 .stream().filter(IGamePlayer::IsAlive).count();
 
-        if ((AliveInnocentCount == 0) || (AliveMoleCount == 0) || _gamePlayers.GetActivePlayers().isEmpty())
+        if ((AliveInnocentCount == 0) || (AliveMoleCount == 0) ||
+                _gameServices.GetGamePlayerCollection().GetActivePlayers().isEmpty())
         {
             EndState(true);
         }
@@ -109,11 +92,11 @@ public class InGameStateExecutor extends GenericGameStateExecutor
         Lines.add(Component.text("Time Left: %s".formatted(_timeConverter.GetTimeString(_clock.GetTicksLeft())))
                 .color(NamedTextColor.GOLD));
 
-        if (_borderBlock.GetTicksLeft() > 0)
+        if (_borderClock.GetTicksLeft() > 0)
         {
             Lines.add(Component.text(""));
             Lines.add(Component.text("Border Shrink: %s".formatted(
-                    _timeConverter.GetTimeString(_borderBlock.GetTicksLeft()))).color(NamedTextColor.AQUA));
+                    _timeConverter.GetTimeString(_borderClock.GetTicksLeft()))).color(NamedTextColor.AQUA));
         }
 
         if (_graceClock.GetTicksLeft() > 0)
@@ -123,7 +106,7 @@ public class InGameStateExecutor extends GenericGameStateExecutor
                     _graceClock.GetTicksLeft()))).color(NamedTextColor.GREEN));
         }
 
-        _scoreboard.SetText(Lines);
+        _gameServices.GetScoreBoard().SetText(Lines);
     }
 
 
@@ -131,14 +114,14 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     private void BeginWorldBorderShrinkForWorld(World world)
     {
         WorldBorder Border = world.getWorldBorder();
-        Border.setSize(_settings.GetBorderSizeEndBlocks(),
+        Border.setSize(_gameServices.GetGameSettings().GetBorderSizeEndBlocks(),
                 _clock.GetTicksLeft() / PCMath.TICKS_IN_SECOND);
     }
 
     private void ShowStartContent(IGamePlayer player)
     {
         TextComponent.Builder MessageBuilder = Component.text();
-        IGameTeam PlayerTeam = _gamePlayers.GetTeamOfPlayer(player);
+        IGameTeam PlayerTeam = _gameServices.GetGamePlayerCollection().GetTeamOfPlayer(player);
         TextColor PlayerTextColor = TextColor.color(PlayerTeam.GetColor().asRGB());
         MessageBuilder.append(Component.text("Game started!").color(NamedTextColor.GREEN));
         MessageBuilder.append(Component.text(" Your role: %s".formatted(PlayerTeam.GetName())).color(PlayerTextColor));
@@ -156,8 +139,9 @@ public class InGameStateExecutor extends GenericGameStateExecutor
 
     private void OnGraceTimerRunOut()
     {
-        _gamePlayers.SendMessage(Component.text("Grace period over").color(NamedTextColor.RED));
-        _gamePlayers.GetActivePlayers().forEach(player -> player.SetMayDealDamage(true));
+        _gameServices.GetGamePlayerCollection().SendMessage(Component.text("Grace period over")
+                .color(NamedTextColor.RED));
+        _gameServices.GetGamePlayerCollection().GetActivePlayers().forEach(player -> player.SetMayDealDamage(true));
     }
 
     private void RevokeAdvancements(IGamePlayer player)
@@ -177,11 +161,11 @@ public class InGameStateExecutor extends GenericGameStateExecutor
 
     private void StartStatePlayer(IGamePlayer player)
     {
-        _scoreboard.SetIsBoardEnabledForPlayer(player.GetServerPlayer(), true);
-        player.GetMaxHealth().SetBaseValue(_settings.GetPlayerHealthHalfHearts());
+        _gameServices.GetScoreBoard().SetIsBoardEnabledForPlayer(player.GetServerPlayer(), true);
+        player.GetMaxHealth().SetBaseValue(_gameServices.GetGameSettings().GetPlayerHealthHalfHearts());
         player.SetTargetState(GamePlayerState.InGame);
-        player.GetMCPlayer().teleport(_locationProvider.GetRandomCenterLocation());
-        _scoreboard.AddToTeam(player.GetServerPlayer());
+        player.GetMCPlayer().teleport(_gameServices.GetLocationProvider().GetRandomCenterLocation());
+        _gameServices.GetScoreBoard().AddToTeam(player.GetServerPlayer());
         player.SetMayDealDamage(_graceClock.GetTicksLeft() <= 0);
         RevokeAdvancements(player);
         ShowStartContent(player);
@@ -189,17 +173,22 @@ public class InGameStateExecutor extends GenericGameStateExecutor
 
     private void StartBorderShrink()
     {
-        _gamePlayers.SendMessage(Component.text("The border is now shrinking.").color(NamedTextColor.RED));
-        _worldProvider.GetWorlds().forEach(this::BeginWorldBorderShrinkForWorld);
-        _borderBlock.SetIsRunning(false);
+        _gameServices.GetGamePlayerCollection().SendMessage(Component.text("The border is now shrinking.")
+                .color(NamedTextColor.RED));
+        _gameServices.GetLocationProvider().GetWorlds().forEach(this::BeginWorldBorderShrinkForWorld);
+        _borderClock.SetIsRunning(false);
     }
 
     private void EndState(boolean endedNaturally)
     {
-        _gamePlayers.GetPlayers().forEach(this::PlayerEndState);
+        _gameServices.GetGamePlayerCollection().GetPlayers().forEach(player ->
+        {
+            PlayerEndState(player);
+            player.GetLifeChangeEvent().Unsubscribe(this);
+        });
         _graceClock.SetIsRunning(false);
         _clock.SetIsRunning(false);
-        _borderBlock.SetIsRunning(false);
+        _borderClock.SetIsRunning(false);
         GetEndEvent().FireEvent(new GameStateExecutorEndEvent(this, endedNaturally));
     }
 
@@ -207,9 +196,9 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     {
         ShowGameTime();
 
-        _gamePlayers.GetActivePlayers().forEach(ITickable::Tick);
+        _gameServices.GetGamePlayerCollection().GetActivePlayers().forEach(ITickable::Tick);
 
-        if (_borderBlock.GetTicksLeft() == _settings.GetBorderShrinkStartTimeTicks())
+        if (_borderClock.GetTicksLeft() == _gameServices.GetGameSettings().GetBorderShrinkStartTimeTicks())
         {
             StartBorderShrink();
         }
@@ -220,9 +209,14 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     private void AssignRoles()
     {
         IRoleAssigner RoleAssigned = new RandomRoleAssigner();
-        int MinMoles = _settings.GetMoleCountMin();
-        int MaxMoles = Math.max(MinMoles, _settings.GetMoleCountMax());
-        RoleAssigned.AssignRoles(_gamePlayers, MinMoles, MaxMoles);
+        int MinMoles = _gameServices.GetGameSettings().GetMoleCountMin();
+        int MaxMoles = Math.max(MinMoles, _gameServices.GetGameSettings().GetMoleCountMax());
+        RoleAssigned.AssignRoles(_gameServices.GetGamePlayerCollection(), MinMoles, MaxMoles);
+    }
+
+    private void OnPlayerLifeChangeEvent(GamePlayerLifeChangeEvent event)
+    {
+        _gameServices.GetScoreBoard().RemoveFromTeam(event.GetPlayer().GetServerPlayer());
     }
 
 
@@ -230,34 +224,39 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     @Override
     public void StartState()
     {
-        _scoreboard.SetTitle(Component.text("Info").color(NamedTextColor.WHITE));
+        _gameServices.GetScoreBoard().SetTitle(Component.text("Info").color(NamedTextColor.WHITE));
 
-        if (_settings.GetGracePeriodTimeTicks() > 0)
+        if (_gameServices.GetGameSettings().GetGracePeriodTimeTicks() > 0)
         {
-            _graceClock.SetTicksLeft(_settings.GetGracePeriodTimeTicks());
+            _graceClock.SetTicksLeft(_gameServices.GetGameSettings().GetGracePeriodTimeTicks());
             _graceClock.SetHandler(clock -> OnGraceTimerRunOut());
             _graceClock.SetIsRunning(true);
         }
 
-        if (_settings.GetDoesBorderShrink() && _settings.GetGracePeriodTimeTicks() > 0)
+        if (_gameServices.GetGameSettings().GetDoesBorderShrink() &&
+                (_gameServices.GetGameSettings().GetGracePeriodTimeTicks() > 0))
         {
-            _borderBlock.SetTicksLeft(Math.min(_settings.GetBorderShrinkStartTimeTicks(),
-                    _settings.GetGameTimeTicks()));
-            _borderBlock.SetHandler(clock -> StartBorderShrink());
-            _borderBlock.SetIsRunning(true);
+            _borderClock.SetTicksLeft(Math.min(_gameServices.GetGameSettings().GetBorderShrinkStartTimeTicks(),
+                    _gameServices.GetGameSettings().GetGameTimeTicks()));
+            _borderClock.SetHandler(clock -> StartBorderShrink());
+            _borderClock.SetIsRunning(true);
         }
 
-        _clock.SetTicksLeft(_settings.GetGameTimeTicks());
+        _clock.SetTicksLeft(_gameServices.GetGameSettings().GetGameTimeTicks());
         _clock.SetHandler(clock -> EndState(true));
         _clock.SetTickFunction(clock -> OnClockTick());
         _clock.SetIsRunning(true);
 
         GameWorldInitializer WorldInitializer = new GameWorldInitializer();
-        _worldProvider.GetWorlds().forEach(world -> WorldInitializer.InitializeWorldInGame(world,
-                _settings.GetBorderSizeStartBlocks()));
+        _gameServices.GetLocationProvider().GetWorlds().forEach(world -> WorldInitializer.InitializeWorldInGame(
+                world, _gameServices.GetGameSettings().GetBorderSizeStartBlocks()));
 
         AssignRoles();
-        _gamePlayers.GetPlayers().forEach(this::StartStatePlayer);
+        _gameServices.GetGamePlayerCollection().GetPlayers().forEach(player ->
+        {
+            StartStatePlayer(player);
+            player.GetLifeChangeEvent().Subscribe(this, this::OnPlayerLifeChangeEvent);
+        });
 
         _moleHunt.GetParticipantRemoveEvent().Subscribe(this, this::OnParticipantRemoveEvent);
     }
@@ -271,7 +270,7 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     @Override
     public void Tick()
     {
-        _borderBlock.Tick();
+        _borderClock.Tick();
         _graceClock.Tick();
         _clock.Tick();
     }

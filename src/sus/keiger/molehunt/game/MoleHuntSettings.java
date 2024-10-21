@@ -1,6 +1,5 @@
 package sus.keiger.molehunt.game;
 
-import org.bukkit.Bukkit;
 import sus.keiger.plugincommon.PCMath;
 
 import java.lang.reflect.Field;
@@ -38,7 +37,7 @@ public class MoleHuntSettings
     private int _borderShrinkStartTimeTicks = PCMath.SecondsToTicks(60d * 10d);
 
     @IntGameProperty(Name = "SpellCooldownTicks", MinValue = 1, MaxValue = Integer.MAX_VALUE)
-    private int _spellCastCooldownTicks = PCMath.SecondsToTicks(60d);
+    private int _spellCastCooldownTicks = PCMath.SecondsToTicks(15d);
 
     @BooleanGameProperty(Name = "CanDeadCastSpells")
     private boolean _canDeadCastSpells = true;
@@ -49,25 +48,18 @@ public class MoleHuntSettings
     @BooleanGameProperty(Name = "IsNotifiedOnSpellCast")
     private boolean _isNotifiedOnSpellCast = true;
 
+    @FloatGameProperty(Name = "ManaRegenerationScale", MinValue = 0d, MaxValue = 1000d)
+    private double _manaRegenerationScale = 1d;
+
+    @BooleanGameProperty(Name = "ArePortalsAllowed")
+    private boolean _arePortalsAllowed = false;
+
     @FloatGameProperty(Name = "PlayerHealth", MinValue = 0.0001d, MaxValue = 1000d)
     private double _playerHealthHalfHearts = 20d;
 
 
     // Constructors.
     public MoleHuntSettings() { }
-
-    public MoleHuntSettings(MoleHuntSettings settings)
-    {
-        _gameTimeTicks = settings._gameTimeTicks;
-        _moleCountMin = settings._moleCountMin;
-        _moleCountMax = settings._moleCountMax;
-        _doesBorderShrink = settings._doesBorderShrink;
-        _worldBorderSizeStartBlocks = settings._worldBorderSizeStartBlocks;
-        _worldBorderSizeEndBlocks = settings._worldBorderSizeEndBlocks;
-        _borderShrinkStartTimeTicks = settings._borderShrinkStartTimeTicks;
-        _spellCastCooldownTicks = settings._spellCastCooldownTicks;
-        _canDeadCastSpells = settings._canDeadCastSpells;
-    }
 
 
     // Private methods.
@@ -155,6 +147,17 @@ public class MoleHuntSettings
     {
         return _playerHealthHalfHearts;
     }
+
+    public boolean GetArePortalsAllowed()
+    {
+        return _arePortalsAllowed;
+    }
+
+    public double GetManaRegenerationScale()
+    {
+        return _manaRegenerationScale;
+    }
+
 
     public boolean SetValue(String fieldName, Object value)
     {

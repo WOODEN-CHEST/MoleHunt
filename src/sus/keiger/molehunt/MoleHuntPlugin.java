@@ -10,18 +10,16 @@ import sus.keiger.molehunt.command.MoleHuntCommand;
 import sus.keiger.molehunt.command.SpellCommand;
 import sus.keiger.molehunt.event.*;
 import sus.keiger.molehunt.game.MoleHuntSettings;
-import sus.keiger.molehunt.game.spell.GameSpellCollection;
-import sus.keiger.molehunt.game.spell.HealthScrambleSpellDefinition;
-import sus.keiger.molehunt.game.spell.HeartBeatSpellDefinition;
+import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.lobby.*;
 import sus.keiger.molehunt.player.DefaultServerPlayerCollection;
 import sus.keiger.molehunt.player.*;
-import sus.keiger.plugincommon.IIDProvider;
+import sus.keiger.molehunt.service.DefaultServerServices;
+import sus.keiger.molehunt.service.IServerServices;
+import sus.keiger.molehunt.voicechat.IVoiceChatController;
 import sus.keiger.plugincommon.ITickable;
-import sus.keiger.plugincommon.SequentialIDProvider;
 import sus.keiger.plugincommon.command.ServerCommand;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
-import sus.keiger.plugincommon.packet.clientbound.SetEntityMetaDataPacket;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -41,6 +39,16 @@ public class MoleHuntPlugin extends JavaPlugin
         return new DecimalFormat(pattern, DecimalFormatSymbols.getInstance(GetLocale()));
     }
 
+    public static String PluginID()
+    {
+        return "MoleHuntWC";
+    }
+
+    public static String GetKey()
+    {
+        return "molehuntwc";
+    }
+
 
     // Private methods.
     private void InitializeWorlds(IWorldProvider worldProvider)
@@ -57,7 +65,7 @@ public class MoleHuntPlugin extends JavaPlugin
                                      IServerPlayerCollection players,
                                      IEventDispatcher eventDispatcher)
     {
-        final double SPAWN_SIZE_RADIUS = 100d;
+        final double SPAWN_SIZE_RADIUS = 30d;
         final int SPAWN_LOCATION_X = 0;
         final int SPAWN_LOCATION_Z = 0;
 
@@ -91,6 +99,12 @@ public class MoleHuntPlugin extends JavaPlugin
 
         Spells.AddSpell(new HeartBeatSpellDefinition());
         Spells.AddSpell(new HealthScrambleSpellDefinition());
+        Spells.AddSpell(new RotateSpellDefinition());
+        Spells.AddSpell(new ShakeSpellDefinition());
+        Spells.AddSpell(new DarknessSpellDefinition());
+        Spells.AddSpell(new BreakBlockSpell());
+        Spells.AddSpell(new RandomEnchantSpellDefinition());
+        Spells.AddSpell(new VoiceMuteSpellDefinition());
 
         return Spells;
     }
@@ -103,22 +117,28 @@ public class MoleHuntPlugin extends JavaPlugin
         // Create core objects.
         IWorldProvider WorldProvider = new DefaultWorldProvider();
         IServerPlayerCollection Players = new DefaultServerPlayerCollection();
-        IIDProvider GameIDProvider = new SequentialIDProvider();
         PCGamePacketController PacketController = new PCGamePacketController(
                 this, ProtocolLibrary.getProtocolManager());
+        IEventDispatcher EventDispatcher = new DefaultEventDispatcher();
+        IVoiceChatController VoiceChatController = new DefaultVoiceChatController();
+
 
 
         // Create server components.
+        IServerServices Services = new DefaultServerServices(EventDispatcher,
+                VoiceChatController, WorldProvider, Players, PacketController);
+
         GameSpellCollection Spells = GetSpellCollection();
 
-        IEventDispatcher EventDispatcher = new DefaultEventDispatcher(Players);
         IPlayerExistenceController ExistenceController = new PlayerExistenceController(Players);
 
         IServerLobby Lobby = CreateLobby(WorldProvider, Players, EventDispatcher);
 
+
         MoleHuntSettings GameSettings = new MoleHuntSettings();
-        IPlayerStateController PlayerStateController = new DefaultPlayerStateController(GameIDProvider,
-                PacketController, WorldProvider, EventDispatcher, Players,GameSettings, Lobby, Spells);
+        IPlayerStateController PlayerStateController =
+                new DefaultPlayerStateController(Services, GameSettings, Lobby);
+
 
         // Initialize created components and objects.
         InitializeWorlds(WorldProvider);
@@ -131,6 +151,7 @@ public class MoleHuntPlugin extends JavaPlugin
 
         List<ITickable> Tickables = List.of(ExistenceController, Lobby, PlayerStateController);
         EventDispatcher.GetTickStartEvent().Subscribe(this, event -> Tickables.forEach(ITickable::Tick));
+        VoiceChatController.SubscribeToEvents(EventDispatcher);
 
 
         // Commands.

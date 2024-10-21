@@ -26,6 +26,7 @@ public interface IGamePlayer extends  IModifiablePlayerStats, ITickable, IMoleHu
     GameModifiableValue GetMiningSpeed();
     GameModifiableValue GetEntityReach();
     GameModifiableValue GetAttackSpeed();
+    GameModifiableValue GetBlockReach();
 
     PCPluginEvent<GamePlayerLifeChangeEvent> GetLifeChangeEvent();
 }

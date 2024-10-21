@@ -14,22 +14,16 @@ import java.util.Objects;
 public class DefaultGameSpectatorController implements IGameSpectatorController
 {
     // Private fields.
-    private final GamePlayerCollection _players;
-    private final GameScoreboard _gameScoreboard;
-    private final IGameLocationProvider _locationProvider;
+    private final IGameServices _gameServices;
     private MoleHuntGameState _state = MoleHuntGameState.PreGame;
 
 
 
 
     // Constructors.
-    public DefaultGameSpectatorController(GamePlayerCollection players,
-                                          GameScoreboard gameScoreboard,
-                                          IGameLocationProvider locationProvider)
+    public DefaultGameSpectatorController(IGameServices gameServices)
     {
-        _players = Objects.requireNonNull(players, "players is null");
-        _gameScoreboard = Objects.requireNonNull(gameScoreboard, "gameScoreboard is null");;
-        _locationProvider = Objects.requireNonNull(locationProvider, "locationProvider is null");
+        _gameServices = Objects.requireNonNull(gameServices, "gameServices is null");
     }
 
 
@@ -40,7 +34,7 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
         MCPlayer.clearActivePotionEffects();
         PlayerFunctions.ResetAttributes(MCPlayer);
         MCPlayer.setGameMode(GameMode.SPECTATOR);
-        MCPlayer.teleport(_locationProvider.GetCenterLocation());
+        MCPlayer.teleport(_gameServices.GetLocationProvider().GetCenterLocation());
         ApplySpectatorState(player);
     }
 
@@ -57,7 +51,7 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
 
     private void OnGamePlayerLifeChangeEvent(GamePlayerLifeChangeEvent event)
     {
-        _players.GetSpectators().forEach(this::ApplySpectatorState);
+        _gameServices.GetGamePlayerCollection().GetSpectators().forEach(this::ApplySpectatorState);
     }
 
     private void InitPreStartSpectator(IServerPlayer player)
@@ -67,7 +61,7 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
 
     private void InitInGameSpectator(IServerPlayer player)
     {
-        _gameScoreboard.SetIsBoardEnabledForPlayer(player, true);
+        _gameServices.GetScoreBoard().SetIsBoardEnabledForPlayer(player, true);
     }
 
     private void InitPostGameSpectator(IServerPlayer player)
@@ -82,7 +76,7 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
 
     private void ClearSpectator(IServerPlayer player)
     {
-        _gameScoreboard.SetIsBoardEnabledForPlayer(player, false);
+        _gameServices.GetScoreBoard().SetIsBoardEnabledForPlayer(player, false);
     }
 
 
@@ -90,7 +84,7 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
     @Override
     public boolean AddSpectator(IServerPlayer player)
     {
-        if (_players.AddSpectator(player))
+        if (_gameServices.GetGamePlayerCollection().AddSpectator(player))
         {
             InitializeSpectator(player);
             return true;
@@ -101,7 +95,7 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
     @Override
     public boolean RemoveSpectator(IServerPlayer player)
     {
-        if (_players.RemoveSpectator(player))
+        if (_gameServices.GetGamePlayerCollection().RemoveSpectator(player))
         {
             ClearSpectator(player);
             return true;
@@ -112,29 +106,30 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
     @Override
     public boolean ContainsSpectator(IServerPlayer player)
     {
-        return _players.ContainsSpectator(player);
+        return _gameServices.GetGamePlayerCollection().ContainsSpectator(player);
     }
 
     @Override
     public List<IServerPlayer> GetSpectators()
     {
-        return _players.GetSpectators();
+        return _gameServices.GetGamePlayerCollection().GetSpectators();
     }
 
     @Override
     public void SetState(MoleHuntGameState state)
     {
         _state = Objects.requireNonNull(state);
-        _players.GetSpectators().forEach(this::ApplySpectatorState);
+        _gameServices.GetGamePlayerCollection().GetSpectators().forEach(this::ApplySpectatorState);
 
         if (_state == MoleHuntGameState.Complete)
         {
-            _players.GetPlayers().forEach(player -> player.GetLifeChangeEvent().Unsubscribe(this));
+            _gameServices.GetGamePlayerCollection().GetPlayers().forEach(
+                    player -> player.GetLifeChangeEvent().Unsubscribe(this));
         }
         else if (_state != MoleHuntGameState.Initializing)
         {
-            _players.GetPlayers().forEach(player -> player.GetLifeChangeEvent().Subscribe(
-                    this, this::OnGamePlayerLifeChangeEvent));
+            _gameServices.GetGamePlayerCollection().GetPlayers().forEach(
+                    player -> player.GetLifeChangeEvent().Subscribe(this, this::OnGamePlayerLifeChangeEvent));
         }
     }
 }

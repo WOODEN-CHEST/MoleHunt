@@ -5,15 +5,14 @@ import net.kyori.adventure.text.format.*;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.event.player.PlayerQuitEvent;
-import sus.keiger.molehunt.IWorldProvider;
 import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.game.event.*;
 import sus.keiger.molehunt.game.player.*;
 import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.player.*;
+import sus.keiger.molehunt.service.DefaultServerServices;
+import sus.keiger.molehunt.service.IServerServices;
 import sus.keiger.plugincommon.*;
-import sus.keiger.plugincommon.command.CommandData;
-import sus.keiger.plugincommon.packet.PCGamePacketController;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
 
 import java.util.*;
@@ -22,17 +21,16 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
 {
     // Private fields.
     private final long _ID;
-    private final GamePlayerCollection _gamePlayerCollection;
-    private final IServerPlayerCollection _serverPlayerCollection;
-    private final IGameSpectatorController _spectatorController;
-    private final MoleHuntSettings _settings;
-    private final IEventDispatcher _eventDispatcher;
+    private final IGameServices _gameServices;
     private final Map<MoleHuntGameState, IGameStateExecutor> _stateExecutors = new HashMap<>();
+    private final IGameSpectatorController _spectatorController;
     private final GameChatInterceptor _chatInterceptor;
     private final IGameSpellExecutor _spellExecutor;
     private final GameCommandInterceptor _commandInterceptor;
     private final GameAdvancementInterceptor _advancementInterceptor;
     private final GameTabListUpdater _tabUpdater;
+    private final GamePortalController _portalController;
+    private final GameItemModifier _itemModifier;
 
     private final PCPluginEvent<MoleHuntPreStartEvent> _preStartEvent = new PCPluginEvent<>();
     private final PCPluginEvent<MoleHuntStartEvent> _startEvent = new PCPluginEvent<>();
@@ -47,45 +45,51 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
 
     // Constructors.
     public MoleHuntInstance(long id,
-                            IWorldProvider worldProvider,
-                            PCGamePacketController packetController,
-                            IEventDispatcher eventDispatcher,
-                            IServerPlayerCollection playerCollection,
+                            IServerServices serverServices,
                             MoleHuntSettings settings)
     {
         _ID = id;
-        Objects.requireNonNull(worldProvider, "worldProvider is null");
-        Objects.requireNonNull(packetController, "packetController is null");
-        Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
-        Objects.requireNonNull(playerCollection, "playerCollection is null");
+        Objects.requireNonNull(serverServices, "worldProvider is null");
         Objects.requireNonNull(settings, "settings is null");
 
-        GameScoreboard ScoreBoard = new GameScoreboard();
-        IGameLocationProvider LocationProvider = new GameLocationProvider(worldProvider);
+        // Init services.
+        _gameServices = new DefaultGameServices(
+                serverServices.GetEventDispatcher(),
+                serverServices.GetVoiceChatController(),
+                serverServices.GetServerPlayerCollection(),
+                serverServices.GetPacketController(),
+                new GamePlayerCollection(),
+                new GameScoreboard(),
+                new GameLocationProvider(serverServices.GetWorldProvider()));
 
-        _gamePlayerCollection = new GamePlayerCollection();
-        _spectatorController = new DefaultGameSpectatorController(_gamePlayerCollection,
-                ScoreBoard, LocationProvider);
-        _settings = settings;
-        _serverPlayerCollection = playerCollection;
-        _eventDispatcher = eventDispatcher;
-        _chatInterceptor = new GameChatInterceptor(_gamePlayerCollection, _serverPlayerCollection);
-        _spellExecutor = new DefaultGameSpellExecutor(new SpellServiceProvider(_serverPlayerCollection,
-                _gamePlayerCollection, packetController, _settings));
-        _commandInterceptor = new GameCommandInterceptor(_gamePlayerCollection, _serverPlayerCollection);
-        _spellExecutor.SetState(MoleHuntGameState.Initializing);
-        _advancementInterceptor = new GameAdvancementInterceptor(_serverPlayerCollection, _gamePlayerCollection);
-        _tabUpdater = new GameTabListUpdater(packetController, _serverPlayerCollection, _gamePlayerCollection, this);
 
+        // Init components.
+        _spectatorController = new DefaultGameSpectatorController(_gameServices);
+        _chatInterceptor = new GameChatInterceptor(_gameServices);
+
+        _spellExecutor = new DefaultGameSpellExecutor(_gameServices);
+        _commandInterceptor = new GameCommandInterceptor(_gameServices);
+        _advancementInterceptor = new GameAdvancementInterceptor(_gameServices);
+        _tabUpdater = new GameTabListUpdater(_gameServices, this);
+        _portalController = new GamePortalController(_gameServices);
+        _itemModifier = new GameItemModifier();
+
+
+        // Init state executors.
+        InitializeStatExecutors(_gameServices);
+    }
+
+
+
+
+    // Private methods.
+    private void InitializeStatExecutors(IGameServices _gameServices)
+    {
         IGameStateExecutor InitializingExecutor = new GameInitializingStateExecutor();
-        IGameStateExecutor PreStartExecutor = new GamePreStartStateExecutor(_gamePlayerCollection,
-                _eventDispatcher, LocationProvider, this);
-        IGameStateExecutor InGameExecutor = new InGameStateExecutor(_gamePlayerCollection,
-                worldProvider, settings, _eventDispatcher, LocationProvider, this, ScoreBoard);
-        IGameStateExecutor PostEndExecutor = new GamePostEndStateExecutor(_gamePlayerCollection,
-                _eventDispatcher, LocationProvider, this);
-        IGameStateExecutor CompleteStateExecutor = new GameCompleteStateExecutor(
-                _gamePlayerCollection, _eventDispatcher, LocationProvider);
+        IGameStateExecutor PreStartExecutor = new GamePreStartStateExecutor(_gameServices, this);
+        IGameStateExecutor InGameExecutor = new InGameStateExecutor(_gameServices, this);
+        IGameStateExecutor PostEndExecutor = new GamePostEndStateExecutor(_gameServices, this);
+        IGameStateExecutor CompleteStateExecutor = new GameCompleteStateExecutor(_gameServices);
 
         _stateExecutors.put(InitializingExecutor.GetTargetState(), InitializingExecutor);
         _stateExecutors.put(PreStartExecutor.GetTargetState(), PreStartExecutor);
@@ -94,10 +98,6 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
         _stateExecutors.put(CompleteStateExecutor.GetTargetState(), CompleteStateExecutor);
     }
 
-
-
-
-    // Private methods.
     private boolean IsStateOneOf(MoleHuntGameState ... states)
     {
         for (MoleHuntGameState State : states)
@@ -146,14 +146,14 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
     /* Events. */
     private void OnPlayerQuitEvent(PlayerQuitEvent event)
     {
-        IServerPlayer ServerPlayer = _serverPlayerCollection.GetPlayer(event.getPlayer());
+        IServerPlayer ServerPlayer = _gameServices.GetServerPlayerCollection().GetPlayer(event.getPlayer());
         if (ContainsSpectator(ServerPlayer))
         {
             RemoveSpectator(ServerPlayer);
             return;
         }
 
-        IGamePlayer GamePlayer = _gamePlayerCollection.GetGamePlayer(ServerPlayer);
+        IGamePlayer GamePlayer = _gameServices.GetGamePlayerCollection().GetGamePlayer(ServerPlayer);
         if (GamePlayer == null)
         {
             return;
@@ -163,18 +163,22 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
 
     private void OnGamePlayerQuit(IGamePlayer player)
     {
-        _gamePlayerCollection.UpdateCollection();
+        _gameServices.GetGamePlayerCollection().UpdateCollection();
         player.SetIsAlive(false);
         _participantRemoveEvent.FireEvent(new ParticipantRemoveEvent(this, player.GetServerPlayer()));
     }
 
     private void SubscribeToEvents()
     {
-        _eventDispatcher.GetPlayerQuitEvent().Subscribe(this, this::OnPlayerQuitEvent);
-        _chatInterceptor.SubscribeToEvents(_eventDispatcher);
-        _commandInterceptor.SubscribeToEvents(_eventDispatcher);
-        _advancementInterceptor.SubscribeToEvents(_eventDispatcher);
-        _tabUpdater.SubscribeToEvents(_eventDispatcher);
+        IEventDispatcher Dispatcher = _gameServices.GetEventDispatcher();
+
+        Dispatcher.GetPlayerQuitEvent().Subscribe(this, this::OnPlayerQuitEvent);
+        _chatInterceptor.SubscribeToEvents(Dispatcher);
+        _commandInterceptor.SubscribeToEvents(Dispatcher);
+        _advancementInterceptor.SubscribeToEvents(Dispatcher);
+        _tabUpdater.SubscribeToEvents(Dispatcher);
+        _itemModifier.SubscribeToEvents(Dispatcher);
+        _portalController.SubscribeToEvents(Dispatcher);
 
         _stateExecutors.get(MoleHuntGameState.PreGame).GetEndEvent().Subscribe(this, this::OnPreGameStateEnd);
         _stateExecutors.get(MoleHuntGameState.InGame).GetEndEvent().Subscribe(this, this::OnInGameStateEnd);
@@ -183,11 +187,15 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
 
     private void UnsubscribeFromEvents()
     {
-        _eventDispatcher.GetPlayerQuitEvent().Unsubscribe(this);
-        _chatInterceptor.UnsubscribeFromEvents(_eventDispatcher);
-        _commandInterceptor.UnsubscribeFromEvents(_eventDispatcher);
-        _advancementInterceptor.UnsubscribeFromEvents(_eventDispatcher);
-        _tabUpdater.UnsubscribeFromEvents(_eventDispatcher);
+        IEventDispatcher Dispatcher = _gameServices.GetEventDispatcher();
+
+        Dispatcher.GetPlayerQuitEvent().Unsubscribe(this);
+        _chatInterceptor.UnsubscribeFromEvents(Dispatcher);
+        _commandInterceptor.UnsubscribeFromEvents(Dispatcher);
+        _advancementInterceptor.UnsubscribeFromEvents(Dispatcher);
+        _tabUpdater.UnsubscribeFromEvents(Dispatcher);
+        _itemModifier.UnsubscribeFromEvents(Dispatcher);
+        _portalController.UnsubscribeFromEvents(Dispatcher);
 
         _stateExecutors.values().forEach(executor -> executor.GetEndEvent().Unsubscribe(this));
     }
@@ -216,6 +224,8 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
         _chatInterceptor.SetState(state);
         _advancementInterceptor.SetState(state);
         _tabUpdater.SetState(state);
+        _itemModifier.SetState(state);
+        _portalController.SetState(state);
 
         if (state == MoleHuntGameState.Complete)
         {
@@ -230,46 +240,48 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
     public boolean AddPlayer(IServerPlayer player)
     {
         Objects.requireNonNull(player, "player is null");
-        if ((_state != MoleHuntGameState.Initializing) || _gamePlayerCollection.ContainsPlayer(player))
+        if ((_state != MoleHuntGameState.Initializing)
+                || _gameServices.GetGamePlayerCollection().ContainsPlayer(player))
         {
             return false;
         }
 
-        IGamePlayer GamePlayer = new DefaultGamePlayer(player,
-                _serverPlayerCollection, _gamePlayerCollection);
-        return _gamePlayerCollection.AddPlayer(GamePlayer);
+        IGamePlayer GamePlayer = new DefaultGamePlayer(player, _gameServices);
+        return _gameServices.GetGamePlayerCollection().AddPlayer(GamePlayer);
 
     }
 
     @Override
     public boolean ContainsPlayer(IServerPlayer player)
     {
-        return _gamePlayerCollection.ContainsPlayer(Objects.requireNonNull(player, "player is null"));
+        return _gameServices.GetGamePlayerCollection().ContainsPlayer(
+                Objects.requireNonNull(player, "player is null"));
     }
 
     @Override
     public boolean ContainsActivePlayer(IServerPlayer player)
     {
-        return _gamePlayerCollection.ContainsActivePlayer(Objects.requireNonNull(player, "player is null"));
+        return _gameServices.GetGamePlayerCollection().ContainsActivePlayer(
+                Objects.requireNonNull(player, "player is null"));
     }
 
     @Override
     public List<IGamePlayer> GetActivePlayers()
     {
-        return _gamePlayerCollection.GetActivePlayers();
+        return _gameServices.GetGamePlayerCollection().GetActivePlayers();
     }
 
     @Override
     public List<IGamePlayer> GetPlayers()
     {
-        return _gamePlayerCollection.GetPlayers();
+        return _gameServices.GetGamePlayerCollection().GetPlayers();
     }
 
     @Override
     public boolean Start()
     {
-        if ((_state != MoleHuntGameState.Initializing) ||
-                (_settings.GetMoleCountMax() >= _gamePlayerCollection.GetActivePlayers().size()))
+        if ((_state != MoleHuntGameState.Initializing) || (_gameServices.GetGameSettings().GetMoleCountMax() >=
+                        _gameServices.GetGamePlayerCollection().GetActivePlayers().size()))
         {
             return false;
         }
@@ -361,6 +373,12 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
     }
 
     @Override
+    public double GetMaxMana()
+    {
+        return _spellExecutor.GetMaxMana();
+    }
+
+    @Override
     public PCPluginEvent<MoleHuntPreStartEvent> GetPreStartEvent()
     {
         return _preStartEvent;
@@ -406,49 +424,49 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
     @Override
     public List<? extends IAudienceMember> GetAudienceMembers()
     {
-        return _gamePlayerCollection.GetAudienceMembers();
+        return _gameServices.GetGamePlayerCollection().GetAudienceMembers();
     }
 
     @Override
     public void ShowTitle(Title title)
     {
-        _gamePlayerCollection.ShowTitle(title);
+        _gameServices.GetGamePlayerCollection().ShowTitle(title);
     }
 
     @Override
     public void ClearTitle()
     {
-        _gamePlayerCollection.ClearTitle();
+        _gameServices.GetGamePlayerCollection().ClearTitle();
     }
 
     @Override
     public void ShowActionbar(ActionbarMessage message)
     {
-        _gamePlayerCollection.ShowActionbar(message);
+        _gameServices.GetGamePlayerCollection().ShowActionbar(message);
     }
 
     @Override
     public void RemoveActionbar(long id)
     {
-        _gamePlayerCollection.RemoveActionbar(id);
+        _gameServices.GetGamePlayerCollection().RemoveActionbar(id);
     }
 
     @Override
     public void ClearActionbar()
     {
-        _gamePlayerCollection.ClearActionbar();
+        _gameServices.GetGamePlayerCollection().ClearActionbar();
     }
 
     @Override
     public void PlaySound(Sound sound, Location location, SoundCategory category, float volume, float pitch)
     {
-        _gamePlayerCollection.PlaySound(sound, location, category, volume, pitch);
+        _gameServices.GetGamePlayerCollection().PlaySound(sound, location, category, volume, pitch);
     }
 
     @Override
     public void SendMessage(Component message)
     {
-        _gamePlayerCollection.SendMessage(message);
+        _gameServices.GetGamePlayerCollection().SendMessage(message);
     }
 
     @Override
@@ -461,6 +479,7 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
                                   double extra,
                                   T data)
     {
-        _gamePlayerCollection.SpawnParticle(particle, location, deltaX, deltaY, deltaZ, count, extra, data);
+        _gameServices.GetGamePlayerCollection()
+                .SpawnParticle(particle, location, deltaX, deltaY, deltaZ, count, extra, data);
     }
 }

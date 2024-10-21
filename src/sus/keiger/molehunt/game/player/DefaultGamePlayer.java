@@ -12,6 +12,9 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 import sus.keiger.molehunt.command.SpellCommand;
 import sus.keiger.molehunt.event.*;
+import sus.keiger.molehunt.game.GameTeamType;
+import sus.keiger.molehunt.game.IGameServices;
+import sus.keiger.molehunt.game.IGameTeam;
 import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.player.*;
 import sus.keiger.plugincommon.PCPluginEvent;
@@ -24,8 +27,7 @@ public class DefaultGamePlayer implements IGamePlayer
 {
     // Private fields.
     private final IModifiablePlayerStats _stats = new PlayerStatsContainer();
-    private final IServerPlayerCollection _serverPlayerCollection;
-    private final GamePlayerCollection _gamePlayerCollection;
+    private final IGameServices _gameServices;
     private final IServerPlayer _serverPlayer;
 
     private final PCPluginEvent<GamePlayerLifeChangeEvent> _lifeChangeEvent = new PCPluginEvent<>();
@@ -39,24 +41,26 @@ public class DefaultGamePlayer implements IGamePlayer
     private final double DEFAULT_MINING_SPEED = 1d;
     private final double DEFAULT_ATTACK_SPEED = 4d;
     private final double DEFAULT_ENTITY_REACH = 3d;
+    private final double DEFAULT_BLOCK_REACH = 4.5d;
+    private final double MOLE_PARTICLE_OFFSET_DELTA = 0.5d;
+    private final float MOLE_PARTICLE_SIZE = 0.75f;
     private final GameModifiableValue _maxHealth = new GameModifiableValue(DEFAULT_HEALTH);
     private final GameModifiableValue _miningSpeed = new GameModifiableValue(DEFAULT_MINING_SPEED);
     private final GameModifiableValue _attackSpeed = new GameModifiableValue(DEFAULT_ATTACK_SPEED);
     private final GameModifiableValue _entityReach = new GameModifiableValue(DEFAULT_ENTITY_REACH);
+    private final GameModifiableValue _blockReach = new GameModifiableValue(DEFAULT_BLOCK_REACH);
 
 
 
     // Constructors.
     public DefaultGamePlayer(IServerPlayer player,
-                             IServerPlayerCollection playerCollection,
-                             GamePlayerCollection gamePlayerCollection)
+                             IGameServices services)
     {
         _serverPlayer = Objects.requireNonNull(player, "player is null");
-        _serverPlayerCollection = Objects.requireNonNull(playerCollection, "playerCollection is null");
-        _gamePlayerCollection = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
+        _gameServices = Objects.requireNonNull(services, "services is null");
 
         _isAlive = true;
-        _executor = new AlivePlayerExecutor(this, _serverPlayerCollection, gamePlayerCollection);
+        _executor = new AlivePlayerExecutor(this, services);
     }
 
 
@@ -81,13 +85,31 @@ public class DefaultGamePlayer implements IGamePlayer
             return;
         }
 
-        IGamePlayer DamagerPlayer = _gamePlayerCollection.GetGamePlayer(
-                _serverPlayerCollection.GetPlayer(PlayerCause));
+        IGamePlayer DamagerPlayer = _gameServices.GetGamePlayerCollection().GetGamePlayer(
+                _gameServices.GetServerPlayerCollection().GetPlayer(PlayerCause));
 
         if ((GetMCPlayer() == event.getEntity()) && (DamagerPlayer != null)
                 && !DamagerPlayer.GetMayDealDamage())
         {
             event.setCancelled(true);
+        }
+    }
+
+    private void ShowMoleParticle()
+    {
+        IGameTeam MoleTeam = _gameServices.GetGamePlayerCollection().GetTeamByType(GameTeamType.Moles);
+        if (MoleTeam.ContainsPlayer(this) || !IsAlive())
+        {
+            for (IGamePlayer Teammate : MoleTeam.GetPlayers())
+            {
+                if ((Teammate == this) || !Teammate.IsAlive())
+                {
+                    continue;
+                }
+                SpawnParticle(Particle.DUST, Teammate.GetMCPlayer().getEyeLocation(),
+                        MOLE_PARTICLE_OFFSET_DELTA, MOLE_PARTICLE_OFFSET_DELTA, MOLE_PARTICLE_OFFSET_DELTA,
+                        1, 1d, new Particle.DustOptions(MoleTeam.GetColor(), MOLE_PARTICLE_SIZE));
+            }
         }
     }
 
@@ -152,8 +174,8 @@ public class DefaultGamePlayer implements IGamePlayer
         }
 
         _executor = _isAlive ?
-                new AlivePlayerExecutor(this, _serverPlayerCollection, _gamePlayerCollection):
-                new DeadPlayerExecutor(this, _serverPlayerCollection);
+                new AlivePlayerExecutor(this, _gameServices):
+                new DeadPlayerExecutor(this, _gameServices);
         _executor.SwitchState(_state);
 
         _lifeChangeEvent.FireEvent(new GamePlayerLifeChangeEvent(this, _isAlive));
@@ -206,6 +228,12 @@ public class DefaultGamePlayer implements IGamePlayer
     public GameModifiableValue GetAttackSpeed()
     {
         return _attackSpeed;
+    }
+
+    @Override
+    public GameModifiableValue GetBlockReach()
+    {
+        return _blockReach;
     }
 
     @Override
@@ -334,10 +362,17 @@ public class DefaultGamePlayer implements IGamePlayer
     @Override
     public void Tick()
     {
+        _blockReach.Tick();
+        _entityReach.Tick();
+        _attackSpeed.Tick();
+        _miningSpeed.Tick();
+        _maxHealth.Tick();
+
         if (_state == GamePlayerState.InGame)
         {
             _executor.Tick();
         }
+        ShowMoleParticle();
     }
 
     @Override

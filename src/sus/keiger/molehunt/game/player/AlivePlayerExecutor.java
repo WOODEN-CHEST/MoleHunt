@@ -4,7 +4,6 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameMode;
-import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
@@ -12,15 +11,11 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
 import org.bukkit.util.Vector;
 import sus.keiger.molehunt.MoleHuntPlugin;
-import sus.keiger.molehunt.game.GameTeamType;
-import sus.keiger.molehunt.game.IGameTeam;
-import sus.keiger.molehunt.player.IServerPlayerCollection;
+import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.entity.EntityFunctions;
 import sus.keiger.plugincommon.player.PlayerFunctions;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
-import sus.keiger.plugincommon.value.GameModifiableValueModifier;
-import sus.keiger.plugincommon.value.GameModifiableValueOperator;
 
 import java.util.Objects;
 
@@ -28,25 +23,15 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
 {
     // Private fields.
     private GamePlayerState _state = GamePlayerState.PreGame;
-    private final GamePlayerCollection _gamePlayerCollection;
-
-    private final double PENALTY_MAX_HEALTH_SCALE = 0.75d;
-    private final double PENALTY_ATTACKS_SPEED_SCALE = 0.9d;
-    private final double PENALTY_BLOCK_BREAK_SPEED_SCALE = 0.8d;
-    private final double PENALTY_ENTITY_REACH_SCALE = 0.95d;
-    private final double BOOST_KILL_MOLE_ON_INNOCENT_HEALTH_FACTOR = 1.1d;
-    private final double BOOST_KILL_INNOCENT_ON_MOLE_HEALTH_FACTOR = 1.15d;
-    private final double MOLE_PARTICLE_OFFSET_DELTA = 0.5d;
-    private final float MOLE_PARTICLE_SIZE = 0.75f;
+    private final IGameServices _gameServices;
+    private final int NEAREST_PLAYER_ACTIONBAR_DURATION_TICKS = PCMath.SecondsToTicks(3d);
 
 
     // Constructors.
-    public AlivePlayerExecutor(IGamePlayer gamePlayer,
-                               IServerPlayerCollection serverPlayerCollection,
-                               GamePlayerCollection gamePlayerCollection)
+    public AlivePlayerExecutor(IGamePlayer gamePlayer, IGameServices services)
     {
-        super(gamePlayer, serverPlayerCollection);
-        _gamePlayerCollection = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
+        super(gamePlayer, services);
+        _gameServices = Objects.requireNonNull(services, "services is null");
     }
 
 
@@ -81,26 +66,6 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
         GetPlayer().GetMCPlayer().setSaturation(PlayerFunctions.MAX_SATURATION);
     }
 
-    private void ShowMoleParticle()
-    {
-        IGameTeam MoleTeam = _gamePlayerCollection.GetTeamByType(GameTeamType.Moles);
-        if (!MoleTeam.ContainsPlayer(GetPlayer()))
-        {
-            return;
-        }
-
-        for (IGamePlayer Teammate : MoleTeam.GetPlayers())
-        {
-            if (Teammate == GetPlayer())
-            {
-                continue;
-            }
-            GetPlayer().SpawnParticle(Particle.DUST, GetPlayer().GetMCPlayer().getEyeLocation(),
-                    MOLE_PARTICLE_OFFSET_DELTA, MOLE_PARTICLE_OFFSET_DELTA, MOLE_PARTICLE_OFFSET_DELTA,
-                    1, 1d, new Particle.DustOptions(MoleTeam.GetColor(), MOLE_PARTICLE_SIZE));
-        }
-    }
-
     private void PreGameTick()
     {
         ResetFood();
@@ -110,7 +75,6 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
     {
         ShowNearestPlayerDistance();
         UpdateAttributes();
-        ShowMoleParticle();
     }
 
     private void PostGameTick()
@@ -143,9 +107,9 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
     private double GetNearestPlayerDistance()
     {
         double NearestDistance = Double.POSITIVE_INFINITY;
-        for (IGamePlayer Player : _gamePlayerCollection.GetPlayers())
+        for (IGamePlayer Player : _gameServices.GetGamePlayerCollection().GetPlayers())
         {
-            if (Player == GetPlayer())
+            if (Player == GetPlayer() || !Player.IsAlive())
             {
                 continue;
             }
@@ -167,9 +131,10 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
     {
         final long MESSAGE_ID = 67565838L;
         Component Message = Component.text("Nearest Player: %sm"
-                .formatted(MoleHuntPlugin.GetNumberFormat("0.00").format(
+                .formatted(MoleHuntPlugin.GetNumberFormat("0").format(
                         GetNearestPlayerDistance()))).color(NamedTextColor.AQUA);
-        GetPlayer().ShowActionbar(new ActionbarMessage(PCMath.TICKS_IN_SECOND, Message, MESSAGE_ID));
+        GetPlayer().ShowActionbar(new ActionbarMessage(
+                NEAREST_PLAYER_ACTIONBAR_DURATION_TICKS, Message, MESSAGE_ID));
     }
 
     private void UpdateAttributes()
@@ -182,59 +147,9 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
                 GetPlayer().GetMiningSpeed().GetValue());
         EntityFunctions.TrySetAttributeBaseValue(GetPlayer().GetMCPlayer(), Attribute.PLAYER_ENTITY_INTERACTION_RANGE,
                 GetPlayer().GetEntityReach().GetValue());
+        EntityFunctions.TrySetAttributeBaseValue(GetPlayer().GetMCPlayer(), Attribute.PLAYER_BLOCK_INTERACTION_RANGE,
+                GetPlayer().GetBlockReach().GetValue());
     }
-
-    private void HandleKill(PlayerDeathEvent event)
-    {
-        IGamePlayer KillerPlayer = _gamePlayerCollection.GetGamePlayer(GetServerPlayers()
-                .GetPlayer(event.getPlayer()));
-        if (KillerPlayer == null)
-        {
-            return;
-        }
-
-        GameTeamType VictimTeamType = _gamePlayerCollection.GetTeamOfPlayer(GetPlayer()).GetType();
-        GameTeamType KillerTeamType = _gamePlayerCollection.GetTeamOfPlayer(KillerPlayer).GetType();
-
-        if ((VictimTeamType == GameTeamType.Innocents) && (KillerTeamType == GameTeamType.Innocents))
-        {
-            OnWrongfulKill(KillerPlayer);
-        }
-        else if ((VictimTeamType == GameTeamType.Moles) && (KillerTeamType == GameTeamType.Innocents))
-        {
-            OnInnocentKillMole(KillerPlayer);
-        }
-        else if ((VictimTeamType == GameTeamType.Innocents) && (KillerTeamType == GameTeamType.Moles))
-        {
-            OnMoleKillInnocent(KillerPlayer);
-        }
-    }
-
-    private void OnWrongfulKill(IGamePlayer killer)
-    {
-        killer.GetMaxHealth().AddModifier(new GameModifiableValueModifier(GameModifiableValueOperator.Multiply,
-                PENALTY_MAX_HEALTH_SCALE, Integer.MAX_VALUE));
-        killer.GetMiningSpeed().AddModifier(new GameModifiableValueModifier(GameModifiableValueOperator.Multiply,
-                PENALTY_BLOCK_BREAK_SPEED_SCALE, Integer.MAX_VALUE));
-        killer.GetAttackSpeed().AddModifier(new GameModifiableValueModifier(GameModifiableValueOperator.Multiply,
-                PENALTY_ATTACKS_SPEED_SCALE, Integer.MAX_VALUE));
-        killer.GetEntityReach().AddModifier(new GameModifiableValueModifier(GameModifiableValueOperator.Multiply,
-                PENALTY_ENTITY_REACH_SCALE, Integer.MAX_VALUE));
-    }
-
-    private void OnMoleKillInnocent(IGamePlayer killer)
-    {
-        killer.GetMaxHealth().AddModifier(new GameModifiableValueModifier(GameModifiableValueOperator.Multiply,
-                BOOST_KILL_MOLE_ON_INNOCENT_HEALTH_FACTOR, Integer.MAX_VALUE));
-    }
-
-    private void OnInnocentKillMole(IGamePlayer killer)
-    {
-        killer.GetMaxHealth().AddModifier(new GameModifiableValueModifier(GameModifiableValueOperator.Multiply,
-                BOOST_KILL_INNOCENT_ON_MOLE_HEALTH_FACTOR, Integer.MAX_VALUE));
-}
-
-
 
     // Inherited methods.
     @Override
@@ -262,7 +177,6 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
             return;
         }
 
-        HandleKill(event);
         event.deathMessage(null);
         GetPlayer().SetIsAlive(false);
     }

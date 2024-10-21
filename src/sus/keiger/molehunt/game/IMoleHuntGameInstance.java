@@ -37,6 +37,7 @@ public interface IMoleHuntGameInstance extends ITickable, IAudienceMemberHolder
     long GetGameID();
 
     void CastSpell(GameSpellDefinition definition, GameSpellArguments args);
+    double GetMaxMana();
 
 
     PCPluginEvent<MoleHuntPreStartEvent> GetPreStartEvent();

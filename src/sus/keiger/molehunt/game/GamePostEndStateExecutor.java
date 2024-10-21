@@ -24,9 +24,7 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
 {
     // Private fields.
     private final IMoleHuntGameInstance _moleHunt;
-    private final GamePlayerCollection _gamePlayers;
-    private final IEventDispatcher _eventDispatcher;
-    private final IWorldProvider _worldProvider;
+    private final IGameServices _gameServices;
     private final TickClock _clock = new TickClock();
 
     private final int STATE_DURATION_TICKS = PCMath.SecondsToTicks(10d);
@@ -36,23 +34,20 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
 
 
     // Constructors.
-    public GamePostEndStateExecutor(GamePlayerCollection gamePlayerCollection,
-                                    IEventDispatcher eventDispatcher,
-                                    IWorldProvider worldProvider,
+    public GamePostEndStateExecutor(IGameServices services,
                                     IMoleHuntGameInstance moleHunt)
     {
         super(MoleHuntGameState.PostGame);
+
         _moleHunt = Objects.requireNonNull(moleHunt, "moleHunt is null");
-        _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
-        _gamePlayers = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
-        _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
+        _gameServices = Objects.requireNonNull(services, "services is null");
     }
 
 
     // Private methods.
     private void OnParticipantRemoveEvent(ParticipantRemoveEvent event)
     {
-        IGamePlayer Player = _gamePlayers.GetGamePlayer(event.GetPlayer());
+        IGamePlayer Player = _gameServices.GetGamePlayerCollection().GetGamePlayer(event.GetPlayer());
         if (Player != null)
         {
             DeinitializePlayer(Player);
@@ -61,7 +56,7 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
 
     private void DeinitializePlayer(IGamePlayer player)
     {
-        player.UnsubscribeFromEvents(_eventDispatcher);
+        player.UnsubscribeFromEvents(_gameServices.GetEventDispatcher());
     }
 
     private void InitializeWorldNotInGame(World world)
@@ -86,11 +81,11 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
 
     private IGameTeam GetWinningTeam()
     {
-        boolean AreInnocentsAlive = _gamePlayers.GetTeamByType(GameTeamType.Innocents)
+        boolean AreInnocentsAlive = _gameServices.GetGamePlayerCollection().GetTeamByType(GameTeamType.Innocents)
                 .GetPlayers().stream().anyMatch(IGamePlayer::IsAlive);
 
-        return AreInnocentsAlive ? _gamePlayers.GetTeamByType(GameTeamType.Innocents) :
-                _gamePlayers.GetTeamByType(GameTeamType.Moles);
+        return AreInnocentsAlive ? _gameServices.GetGamePlayerCollection().GetTeamByType(GameTeamType.Innocents) :
+                _gameServices.GetGamePlayerCollection().GetTeamByType(GameTeamType.Moles);
     }
 
     private void ShowTeamEndContent(IGameTeam winnerTeam, IGameTeam loserTeam)
@@ -116,15 +111,15 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
         Component TeamMessage = Component.text("Team %s has won the game!".formatted(PCString.Pluralize(
                 winnerTeam.GetName(), true))).color(TextColor.color(winnerTeam.GetColor().asRGB()));
 
-        _gamePlayers.SendMessage(TeamMessage);
+        _gameServices.GetGamePlayerCollection().SendMessage(TeamMessage);
     }
 
     private void HandleTeamEnd()
     {
         IGameTeam WinnerTeam = GetWinningTeam();
         IGameTeam LoserTeam = WinnerTeam.GetType() == GameTeamType.Innocents ?
-                _gamePlayers.GetTeamByType(GameTeamType.Moles) :
-                _gamePlayers.GetTeamByType(GameTeamType.Innocents);
+                _gameServices.GetGamePlayerCollection().GetTeamByType(GameTeamType.Moles) :
+                _gameServices.GetGamePlayerCollection().GetTeamByType(GameTeamType.Innocents);
         ShowTeamEndContent(WinnerTeam, LoserTeam);
     }
 
@@ -135,7 +130,7 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
 
     private void OnClockTick()
     {
-        _gamePlayers.GetActivePlayers().forEach(ITickable::Tick);
+        _gameServices.GetGamePlayerCollection().GetActivePlayers().forEach(ITickable::Tick);
     }
 
 
@@ -148,8 +143,8 @@ public class GamePostEndStateExecutor extends GenericGameStateExecutor
         _clock.SetTickFunction(clock -> OnClockTick());
         _clock.SetIsRunning(true);
 
-        _gamePlayers.GetPlayers().forEach(this::StartStatePlayer);
-        _worldProvider.GetWorlds().forEach(this::InitializeWorldNotInGame);
+        _gameServices.GetGamePlayerCollection().GetPlayers().forEach(this::StartStatePlayer);
+        _gameServices.GetLocationProvider().GetWorlds().forEach(this::InitializeWorldNotInGame);
 
         _moleHunt.GetParticipantRemoveEvent().Subscribe(this, this::OnParticipantRemoveEvent);
 

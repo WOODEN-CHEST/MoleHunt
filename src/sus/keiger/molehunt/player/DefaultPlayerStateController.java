@@ -15,7 +15,10 @@ import sus.keiger.molehunt.game.MoleHuntSettings;
 import sus.keiger.molehunt.game.event.MoleHuntCompleteEvent;
 import sus.keiger.molehunt.game.spell.GameSpellCollection;
 import sus.keiger.molehunt.lobby.IServerLobby;
+import sus.keiger.molehunt.service.IServerServices;
+import sus.keiger.molehunt.voicechat.IVoiceChatController;
 import sus.keiger.plugincommon.IIDProvider;
+import sus.keiger.plugincommon.SequentialIDProvider;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
 import sus.keiger.plugincommon.packet.clientbound.PacketPlayerInfo;
 import sus.keiger.plugincommon.packet.clientbound.PlayerInfoUpdatePacket;
@@ -25,35 +28,21 @@ import java.util.Set;
 
 public class DefaultPlayerStateController implements IPlayerStateController
 {// Private fields.
-    private final IIDProvider _idProvider;
-    private final IWorldProvider _worldProvider;
-    private final IEventDispatcher _eventDispatcher;
-    private final PCGamePacketController _packetController;
-    private final IServerPlayerCollection _players;
+    private final IIDProvider _idProvider = new SequentialIDProvider();
+    private final IServerServices _serverServices;
     private final MoleHuntSettings _gameSettings;
     private final IServerLobby _lobby;
     private IMoleHuntGameInstance _currentGameInstance;
-    private GameSpellCollection _spells;
 
 
     // Constructors.
-    public DefaultPlayerStateController(IIDProvider idProvider,
-                                        PCGamePacketController packetController,
-                                        IWorldProvider worldProvider,
-                                        IEventDispatcher eventDispatcher,
-                                        IServerPlayerCollection players,
+    public DefaultPlayerStateController(IServerServices services,
                                         MoleHuntSettings gameSettings,
-                                        IServerLobby lobby,
-                                        GameSpellCollection spells)
+                                        IServerLobby lobby)
     {
-        _idProvider = Objects.requireNonNull(idProvider, "idProvider is null");
-        _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
-        _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");;
-        _packetController = Objects.requireNonNull(packetController, "packetController is null");;
-        _players = Objects.requireNonNull(players, "players is null");
+        _serverServices = Objects.requireNonNull(services, "services is null");
         _gameSettings = Objects.requireNonNull(gameSettings, "gameSettings is null");
         _lobby = Objects.requireNonNull(lobby, "lobby is null");
-        _spells = Objects.requireNonNull(spells, "spells is null");
 
         CreateNewGameInstance();
     }
@@ -63,22 +52,11 @@ public class DefaultPlayerStateController implements IPlayerStateController
     private void AddPlayerToLobby(IServerPlayer player)
     {
         _lobby.AddPlayer(player);
-
-        PlayerInfoUpdatePacket InfoUpdate = new PlayerInfoUpdatePacket();
-        InfoUpdate.SetPlayerInfoActions(Set.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER,
-                EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME));
-        InfoUpdate.SetPlayerInfo(_players.GetPlayers().stream().map(serverPlayer ->
-        {
-            PacketPlayerInfo Info = new PacketPlayerInfo(serverPlayer.GetMCPlayer());
-            Info.SetTabName(Component.text(serverPlayer.GetName()).color(NamedTextColor.WHITE));
-            return Info;
-        }).toList());
-        _packetController.SendPacket(InfoUpdate, player.GetMCPlayer());
     }
 
     private void OnPlayerJoinEvent(PlayerJoinEvent event)
     {
-        IServerPlayer TargetPlayer = _players.GetPlayer(event.getPlayer());
+        IServerPlayer TargetPlayer = _serverServices.GetServerPlayerCollection().GetPlayer(event.getPlayer());
         if (_currentGameInstance.GetState() == MoleHuntGameState.Initializing)
         {
             AddPlayerToLobby(TargetPlayer);
@@ -87,28 +65,28 @@ public class DefaultPlayerStateController implements IPlayerStateController
         }
         else
         {
-            _currentGameInstance.AddSpectator(_players.GetPlayer(event.getPlayer()));
+            _currentGameInstance.AddSpectator(_serverServices.GetServerPlayerCollection()
+                    .GetPlayer(event.getPlayer()));
         }
     }
 
     private void OnPlayerQuitEvent(PlayerQuitEvent event)
     {
-        IServerPlayer TargetPlayer = _players.GetPlayer(event.getPlayer());
+        IServerPlayer TargetPlayer = _serverServices.GetServerPlayerCollection().GetPlayer(event.getPlayer());
         _lobby.RemovePlayer(TargetPlayer);
         _currentGameInstance.RemoveSpectator(TargetPlayer);
     }
 
     private void OnGameCompleteEvent(MoleHuntCompleteEvent event)
     {
-        _players.GetPlayers().forEach(this::AddPlayerToLobby);
+        _serverServices.GetServerPlayerCollection().GetPlayers().forEach(this::AddPlayerToLobby);
         event.GetGameInstance().GetCompleteEvent().Unsubscribe(this);
         CreateNewGameInstance();
     }
 
     private void CreateNewGameInstance()
     {
-        _currentGameInstance = new MoleHuntInstance(_idProvider.GetID(), _worldProvider, _packetController,
-                _eventDispatcher, _players, _gameSettings);
+        _currentGameInstance = new MoleHuntInstance(_idProvider.GetID(), _serverServices, _gameSettings);
         _currentGameInstance.GetCompleteEvent().Subscribe(this, this::OnGameCompleteEvent);
     }
 
@@ -142,7 +120,7 @@ public class DefaultPlayerStateController implements IPlayerStateController
             return false;
         }
 
-        _players.GetPlayers().forEach(player ->
+        _serverServices.GetServerPlayerCollection().GetPlayers().forEach(player ->
         {
             _lobby.RemovePlayer(player);
             _currentGameInstance.AddPlayer(player);

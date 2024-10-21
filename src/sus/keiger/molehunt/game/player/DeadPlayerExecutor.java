@@ -7,6 +7,7 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
 import org.bukkit.util.RayTraceResult;
+import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.molehunt.player.IServerPlayerCollection;
 
 import java.util.Objects;
@@ -19,10 +20,9 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
 
 
     // Constructors.
-    public DeadPlayerExecutor(IGamePlayer gamePlayer,
-                              IServerPlayerCollection playerCollection)
+    public DeadPlayerExecutor(IGamePlayer gamePlayer, IGameServices services)
     {
-        super(gamePlayer, playerCollection);
+        super(gamePlayer, services);
     }
 
     // Inherited methods.
@@ -34,6 +34,7 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
         GetPlayer().GetMiningSpeed().ClearModifiers();
         GetPlayer().GetAttackSpeed().ClearModifiers();
         GetPlayer().GetEntityReach().ClearModifiers();
+        GetPlayer().GetBlockReach().ClearModifiers();
         GetPlayer().GetMCPlayer().setGameMode(GameMode.SPECTATOR);
     }
 

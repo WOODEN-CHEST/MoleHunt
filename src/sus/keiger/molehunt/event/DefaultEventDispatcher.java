@@ -1,14 +1,14 @@
 package sus.keiger.molehunt.event;
 
+import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import io.papermc.paper.event.player.*;
-import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
-import sus.keiger.molehunt.player.IServerPlayerCollection;
+import org.bukkit.event.world.PortalCreateEvent;
 import sus.keiger.plugincommon.PCPluginEvent;
 
 import java.util.Objects;
@@ -16,8 +16,6 @@ import java.util.Objects;
 public class DefaultEventDispatcher implements IEventDispatcher
 {
     // Private fields.
-    private final IServerPlayerCollection _players;
-
     private final PCPluginEvent<ServerTickStartEvent> _serverTickStartEvent = new PCPluginEvent<>();
     private final PCPluginEvent<PlayerJoinEvent> _playerJoinEvent = new PCPluginEvent<>();
     private final PCPluginEvent<PlayerQuitEvent> _playerQuitEvent = new PCPluginEvent<>();
@@ -34,14 +32,12 @@ public class DefaultEventDispatcher implements IEventDispatcher
     private final PCPluginEvent<PrePlayerAttackEntityEvent> _prePlayerAttackEntityEvent = new PCPluginEvent<>();
     private final PCPluginEvent<InventoryOpenEvent> _inventoryOpenEvent = new PCPluginEvent<>();
     private final PCPluginEvent<PlayerAdvancementDoneEvent> _advancementDoneEvent = new PCPluginEvent<>();
+    private final PCPluginEvent<BlockDestroyEvent> _blockDestroyEvent = new PCPluginEvent<>();
+    private final PCPluginEvent<PortalCreateEvent> _portalCreateEvent = new PCPluginEvent<>();
 
 
     // Constructors.
-    public DefaultEventDispatcher(IServerPlayerCollection playerCollection)
-    {
-        _players = Objects.requireNonNull(playerCollection, "playerCollection is null");
-    }
-
+    public DefaultEventDispatcher() { }
 
     // Private methods.
     @EventHandler
@@ -140,6 +136,20 @@ public class DefaultEventDispatcher implements IEventDispatcher
         _advancementDoneEvent.FireEvent(event);
     }
 
+    @EventHandler
+    private void OnBlockDestroyEvent(BlockDestroyEvent event)
+    {
+        _blockDestroyEvent.FireEvent(event);
+    }
+
+
+    @EventHandler
+    private void OnPortalCreateEvent(PortalCreateEvent event)
+    {
+        _portalCreateEvent.FireEvent(event);
+    }
+
+
 
     // Inherited methods.
     @Override
@@ -230,6 +240,18 @@ public class DefaultEventDispatcher implements IEventDispatcher
     public PCPluginEvent<PlayerAdvancementDoneEvent> GetAdvancementDoneEvent()
     {
         return _advancementDoneEvent;
+    }
+
+    @Override
+    public PCPluginEvent<BlockDestroyEvent> GetBlockDestroyEvent()
+    {
+        return _blockDestroyEvent;
+    }
+
+    @Override
+    public PCPluginEvent<PortalCreateEvent> GetPortalCreateEvent()
+    {
+        return _portalCreateEvent;
     }
 
     @Override

@@ -18,25 +18,22 @@ import java.util.stream.Stream;
 public class GameChatInterceptor implements IMoleHuntEventListener, IGameStateContaining
 {
     // Private fields.
-    private final GamePlayerCollection _gamePlayers;
-    private final IServerPlayerCollection _serverPlayers;
+    private final IGameServices _gameServices;
     private MoleHuntGameState _state = MoleHuntGameState.Initializing;
 
 
     // Constructors.
-    public GameChatInterceptor(GamePlayerCollection gamePlayers,
-                               IServerPlayerCollection serverPlayers)
+    public GameChatInterceptor(IGameServices gameServices)
     {
-        _gamePlayers = Objects.requireNonNull(gamePlayers, "gamePlayers is null");
-        _serverPlayers = Objects.requireNonNull(serverPlayers, "serverPlayers is null");;
+        _gameServices = Objects.requireNonNull(gameServices, "gameServices is null");
     }
 
 
     // Private methods.
     private void OnAsyncChatEvent(AsyncChatEvent event)
     {
-        IServerPlayer PlayerWhoChatted = _serverPlayers.GetPlayer(event.getPlayer());
-        IGamePlayer GamePlayer = _gamePlayers.GetGamePlayer(PlayerWhoChatted);
+        IServerPlayer PlayerWhoChatted = _gameServices.GetServerPlayerCollection().GetPlayer(event.getPlayer());
+        IGamePlayer GamePlayer = _gameServices.GetGamePlayerCollection().GetGamePlayer(PlayerWhoChatted);
 
         event.setCancelled(true);
         if (GamePlayer != null)
@@ -50,7 +47,7 @@ public class GameChatInterceptor implements IMoleHuntEventListener, IGameStateCo
                 OnDeadPlayerChatEvent(GamePlayer, event.originalMessage());
             }
         }
-        else if (_gamePlayers.ContainsSpectator(PlayerWhoChatted))
+        else if (_gameServices.GetGamePlayerCollection().ContainsSpectator(PlayerWhoChatted))
         {
             OnSpectatorChatEvent(PlayerWhoChatted, event.originalMessage());
 
@@ -84,8 +81,9 @@ public class GameChatInterceptor implements IMoleHuntEventListener, IGameStateCo
 
     private List<IServerPlayer> GetSpectatorTargets()
     {
-        return Stream.concat(_gamePlayers.GetSpectators().stream(), _gamePlayers.GetActivePlayers().stream()
-                .filter(player -> !player.IsAlive()).map(IGamePlayer::GetServerPlayer)).toList();
+        return Stream.concat(_gameServices.GetGamePlayerCollection().GetSpectators().stream(),
+                _gameServices.GetGamePlayerCollection().GetActivePlayers().stream()
+                        .filter(player -> !player.IsAlive()).map(IGamePlayer::GetServerPlayer)).toList();
     }
 
 

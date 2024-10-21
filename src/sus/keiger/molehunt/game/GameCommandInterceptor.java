@@ -15,8 +15,15 @@ import java.util.Objects;
 public class GameCommandInterceptor implements IMoleHuntEventListener
 {
     // Private fields.
-    private final GamePlayerCollection _gamePlayers;
-    private final IServerPlayerCollection _serverPlayers;
+    private final IGameServices _gameServices;
+
+
+
+    // Constructors.
+    public GameCommandInterceptor(IGameServices gameServices)
+    {
+        _gameServices = Objects.requireNonNull(gameServices, "gameServices is null");
+    }
 
 
     // Private methods.
@@ -32,7 +39,8 @@ public class GameCommandInterceptor implements IMoleHuntEventListener
 
     private void OnCommandPreProcessEvent(PlayerCommandPreprocessEvent event)
     {
-        IGamePlayer Sender = _gamePlayers.GetGamePlayer(_serverPlayers.GetPlayer(event.getPlayer()));
+        IGamePlayer Sender = _gameServices.GetGamePlayerCollection().GetGamePlayer(
+                _gameServices.GetServerPlayerCollection().GetPlayer(event.getPlayer()));
         if (Sender == null)
         {
             return;
@@ -44,14 +52,6 @@ public class GameCommandInterceptor implements IMoleHuntEventListener
             Sender.SendMessage(Component.text("Cannot send commands during MoleHunt.")
                     .color(NamedTextColor.RED));
         }
-    }
-
-
-    // Constructors.
-    public GameCommandInterceptor(GamePlayerCollection gamePlayers, IServerPlayerCollection serverPlayers)
-    {
-        _gamePlayers = Objects.requireNonNull(gamePlayers, "gamePlayers is null");
-        _serverPlayers = Objects.requireNonNull(serverPlayers, "serverPlayers is null");
     }
 
 

@@ -4,31 +4,42 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
+import sus.keiger.molehunt.MoleHuntPlugin;
+import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.molehunt.game.MoleHuntGameState;
 import sus.keiger.molehunt.game.player.IGamePlayer;
-import sus.keiger.plugincommon.ITickable;
 import sus.keiger.plugincommon.IterationSafeSet;
 import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.TickClock;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
 
+import java.text.NumberFormat;
 import java.util.*;
 
 public class DefaultGameSpellExecutor implements IGameSpellExecutor
 {
     // Private fields.
-    private final SpellServiceProvider _spellServiceProvider;
+    private final IGameServices _gameServices;
     private MoleHuntGameState _state = MoleHuntGameState.PreGame;
     private final Set<GameSpell> _activeSpells = new IterationSafeSet<>();
     private final Map<IGamePlayer, GamePlayerSpellData> _playerSpellData = new HashMap<>();
+    private final NumberFormat _manaCostFormat;
+    private final NumberFormat _manaAvailableFormat;
 
+    private final double MAX_ABSOLUTE_MANA = 100d;
     private final int NOTIFICATION_DURATION_TICKS = PCMath.SecondsToTicks(5d);
+    private final double MANA_REGEN_PER_TICK = 1d / 6000d;
+    public final int AVAILABLE_SPELL_CAST_MESSAGE_DURATION_TICKS = PCMath.SecondsToTicks(2.5);
+    public final int MANA_ACTIONBAR_LIFESPAN_TICKS = PCMath.SecondsToTicks(3);
+    public final long MANA_ACTIONBAR_ID = -41290812015L;
 
 
     // Constructors.
-    public DefaultGameSpellExecutor(SpellServiceProvider serviceProvider)
+    public DefaultGameSpellExecutor(IGameServices gameServices)
     {
-        _spellServiceProvider = Objects.requireNonNull(serviceProvider, "serviceProvider is null");
+        _gameServices = Objects.requireNonNull(gameServices, "gameServices is null");
+        _manaCostFormat = MoleHuntPlugin.GetNumberFormat("0.00");
+        _manaAvailableFormat = MoleHuntPlugin.GetNumberFormat("0.0");
     }
 
 
@@ -37,21 +48,24 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
     {
         if (!_playerSpellData.containsKey(player))
         {
+            GamePlayerSpellData SpellData = new GamePlayerSpellData(player);
+            SpellData.CastClock.SetHandler(clock -> ShowSpellAvailableEvent(player));
             _playerSpellData.put(player, new GamePlayerSpellData(player));
         }
     }
 
     private void CreateSpellCastContent(IGamePlayer castingPlayer,
-                                        GameSpellDefinition definition,
+                                        GameSpell spell,
                                         GameSpellArguments args)
     {
-        castingPlayer.SendMessage(Component.text("Casted spell \"%s\"".formatted(definition.GetName()))
-                .color(NamedTextColor.GREEN));
+        castingPlayer.SendMessage(Component.text("Casted spell \"%s\" for %s mana".formatted(
+                spell.GetDefinition().GetName(), _manaCostFormat.format(
+                        spell.GetRelativeManaCost() * MAX_ABSOLUTE_MANA))).color(NamedTextColor.GREEN));
         castingPlayer.PlaySound(Sound.ENTITY_ILLUSIONER_CAST_SPELL, castingPlayer.GetMCPlayer().getLocation(),
                 SoundCategory.PLAYERS, 1f, 1f);
-        if (_spellServiceProvider.GetSettings().GetIsNotifiedOnSpellCast() && args.GetTargetPlayer() != null)
+        if (_gameServices.GetGameSettings().GetIsNotifiedOnSpellCast() && args.GetTargetPlayer() != null)
         {
-            IGamePlayer TargetPlayer = _spellServiceProvider.GetGamePlayers().GetGamePlayer(args.GetTargetPlayer());
+            IGamePlayer TargetPlayer = _gameServices.GetGamePlayerCollection().GetGamePlayer(args.GetTargetPlayer());
             if (TargetPlayer != null)
             {
                 TargetPlayer.ShowActionbar(new ActionbarMessage(NOTIFICATION_DURATION_TICKS,
@@ -62,48 +76,79 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         }
     }
 
-    private void CastSpell(IGamePlayer castingPlayer, GameSpellDefinition definition, GameSpellArguments args)
+    private void CastSpell(IGamePlayer castingPlayer,
+                           GameSpell spell,
+                           GameSpellArguments args,
+                           GamePlayerSpellData playerData)
     {
-        GameSpell CreatedSpell = definition.CreateSpell(args, _spellServiceProvider);
-        CreatedSpell.OnAdd();
+        spell.OnAdd();
 
-        if (definition.GetType() == SpellType.Instant)
+        if (spell.GetDefinition().GetType() == SpellType.Instant)
         {
-            CreatedSpell.Tick();
-            CreatedSpell.OnRemove();
+            spell.Tick();
+            spell.OnRemove();
         }
         else
         {
-            _activeSpells.add(CreatedSpell);
+            _activeSpells.add(spell);
         }
 
-        int CooldownTicks = _spellServiceProvider.GetSettings().GetSpellCastCooldownTicks();
+        int CooldownTicks = _gameServices.GetGameSettings().GetSpellCastCooldownTicks();
         if (CooldownTicks > 0)
         {
-            _playerSpellData.get(castingPlayer).CastClock.SetTicksLeft(CooldownTicks);
+            playerData.CastClock.SetTicksLeft(CooldownTicks);
         }
 
-        CreateSpellCastContent(castingPlayer, definition, args);
+        CreateSpellCastContent(castingPlayer, spell, args);
     }
 
     private void TryCastSpell(IGamePlayer castingPlayer, GameSpellDefinition definition, GameSpellArguments args)
     {
-        if (castingPlayer.IsAlive() && !_spellServiceProvider.GetSettings().GetCanAliveCastSpells())
+        if (castingPlayer.IsAlive() && !_gameServices.GetGameSettings().GetCanAliveCastSpells())
         {
             castingPlayer.SendMessage(Component.text("Alive players may not cast spells").color(NamedTextColor.RED));
+            return;
         }
-        else if (!castingPlayer.IsAlive() && !_spellServiceProvider.GetSettings().GetCanDeadCastSpells())
+        else if (!castingPlayer.IsAlive() && !_gameServices.GetGameSettings().GetCanDeadCastSpells())
         {
             castingPlayer.SendMessage(Component.text("Dead players may not cast spells").color(NamedTextColor.RED));
+            return;
         }
-        else if (!_playerSpellData.get(castingPlayer).IsSpellCastAvailable())
+        else if (_playerSpellData.get(castingPlayer).CastClock.GetTicksLeft() > 0)
         {
             castingPlayer.SendMessage(Component.text("Spell cast is on cooldown").color(NamedTextColor.RED));
+            return;
         }
-        else
+
+        GameSpell CreatedSpell = definition.CreateSpell(args, _gameServices);
+        GamePlayerSpellData PlayerData = _playerSpellData.get(castingPlayer);
+        if (CreatedSpell.GetRelativeManaCost() > PlayerData.RelativeMana)
         {
-            CastSpell(castingPlayer, definition, args);
+            castingPlayer.SendMessage(Component.text("Not enough mana to cast spell (%s / %s)".formatted(
+                    _manaAvailableFormat.format(PlayerData.RelativeMana * MAX_ABSOLUTE_MANA),
+                    _manaAvailableFormat.format(CreatedSpell.GetRelativeManaCost() * MAX_ABSOLUTE_MANA))));
+            return;
         }
+
+        CastSpell(castingPlayer, definition.CreateSpell(args, _gameServices), args, PlayerData);
+    }
+
+    private void ShowSpellAvailableEvent(IGamePlayer gamePlayer)
+    {
+        gamePlayer.ShowActionbar(new ActionbarMessage(AVAILABLE_SPELL_CAST_MESSAGE_DURATION_TICKS,
+                Component.text("Spell cast available").color(NamedTextColor.GREEN)));
+        gamePlayer.PlaySound(Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, gamePlayer.GetMCPlayer().getLocation(),
+                SoundCategory.PLAYERS, 0.4f, 2f);
+    }
+
+    private void PlayerDataTick(GamePlayerSpellData data)
+    {
+        data.CastClock.Tick();
+        data.RelativeMana = Math.max(0d, Math.min(1d, data.RelativeMana + MANA_REGEN_PER_TICK));
+
+        data.Player.ShowActionbar(new ActionbarMessage(MANA_ACTIONBAR_LIFESPAN_TICKS, Component.text(
+                "Mana: %s".formatted(_manaAvailableFormat.format(data.RelativeMana)))
+                .color(NamedTextColor.AQUA), MANA_ACTIONBAR_ID));
     }
 
 
@@ -115,6 +160,7 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
 
         if (state != MoleHuntGameState.InGame)
         {
+            _activeSpells.forEach(GameSpell::OnRemove);
             _activeSpells.clear();
         }
     }
@@ -132,14 +178,20 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
             return;
         }
 
-        IGamePlayer CastingPlayer = _spellServiceProvider.GetGamePlayers().GetGamePlayer(args.GetCastingPlayer());
+        IGamePlayer CastingPlayer = _gameServices.GetGamePlayerCollection().GetGamePlayer(args.GetCastingPlayer());
         if (CastingPlayer == null)
         {
             return;
         }
-        EnsurePlayerInMap(CastingPlayer);
 
+        EnsurePlayerInMap(CastingPlayer);
         TryCastSpell(CastingPlayer, definition, args);
+    }
+
+    @Override
+    public double GetMaxMana()
+    {
+        return MAX_ABSOLUTE_MANA;
     }
 
     @Override
@@ -153,25 +205,27 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         for (GameSpell Spell : _activeSpells)
         {
             Spell.Tick();
-            if (Spell.GetClock().GetTicksLeft() <= 0)
+            if (Spell.GetTicksRemaining() <= 0)
             {
                 Spell.OnRemove();
                 _activeSpells.remove(Spell);
             }
         }
 
-        _playerSpellData.values().forEach(ITickable::Tick);
+        for (GamePlayerSpellData PlayerData : _playerSpellData.values())
+        {
+            PlayerDataTick(PlayerData);
+        }
     }
 
 
     // Types.
-    private static class GamePlayerSpellData implements ITickable
+    private static class GamePlayerSpellData
     {
         // Fields.
         public final IGamePlayer Player;
         public final TickClock CastClock = new TickClock();
-        public int LootSpellIndex = 0;
-        public final int AVAILABLE_SPELL_CAST_MESSAGE_DURATION_TICKS = PCMath.SecondsToTicks(5);
+        public double RelativeMana;
 
 
         // Constructors.
@@ -179,30 +233,6 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         {
             Player = Objects.requireNonNull(player, "player is null");
             CastClock.SetIsRunning(true);
-            CastClock.SetHandler(this::OnSpellAvailableEvent);
-        }
-
-
-        // Methods.
-        public boolean IsSpellCastAvailable()
-        {
-            return CastClock.GetTicksLeft() <= 0;
-        }
-
-        public void OnSpellAvailableEvent(TickClock clock)
-        {
-            Player.ShowActionbar(new ActionbarMessage(AVAILABLE_SPELL_CAST_MESSAGE_DURATION_TICKS,
-                    Component.text("Spell cast available").color(NamedTextColor.GREEN)));
-            Player.PlaySound(Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, Player.GetMCPlayer().getLocation(),
-                    SoundCategory.PLAYERS, 0.4f, 2f);
-        }
-
-
-        // Inherited methods.
-        @Override
-        public void Tick()
-        {
-            CastClock.Tick();
         }
     }
 }

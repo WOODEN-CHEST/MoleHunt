@@ -1,8 +1,8 @@
 package sus.keiger.molehunt.game.spell;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
+import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.TickClock;
 
@@ -11,14 +11,14 @@ public class HeartBeatSpellDefinition extends GameSpellDefinition
     // Constructors.
     public HeartBeatSpellDefinition()
     {
-        super("HeartBeat", "Plays a heart-beat sound to the player", SpellType.Sustained,
+        super("HeartBeat", "Plays a heart-beat sound to the player", SpellType.Sustained, 0.1d,
                 SpellDataRequirement.TargetPlayer);
     }
 
 
     // Inherited methods.
     @Override
-    public GameSpell CreateSpell(GameSpellArguments args, SpellServiceProvider services)
+    public GameSpell CreateSpell(GameSpellArguments args, IGameServices services)
     {
         return new HeartBeatSpell(this, args, services);
     }
@@ -35,7 +35,7 @@ public class HeartBeatSpellDefinition extends GameSpellDefinition
         // Constructors.
         public HeartBeatSpell(GameSpellDefinition definition,
                               GameSpellArguments arguments,
-                              SpellServiceProvider services)
+                              IGameServices services)
         {
             super(definition, arguments, services);
 

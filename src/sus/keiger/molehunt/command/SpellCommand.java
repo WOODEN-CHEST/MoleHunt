@@ -3,14 +3,15 @@ package sus.keiger.molehunt.command;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
+import sus.keiger.molehunt.MoleHuntPlugin;
+import sus.keiger.molehunt.game.MoleHuntGameState;
+import sus.keiger.molehunt.game.MoleHuntSettings;
 import sus.keiger.molehunt.game.player.IGamePlayer;
-import sus.keiger.molehunt.game.spell.GameSpellArguments;
-import sus.keiger.molehunt.game.spell.GameSpellCollection;
-import sus.keiger.molehunt.game.spell.GameSpellDefinition;
-import sus.keiger.molehunt.game.spell.SpellDataRequirement;
+import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.player.IPlayerStateController;
 import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.molehunt.player.IServerPlayerCollection;
+import sus.keiger.plugincommon.PCString;
 import sus.keiger.plugincommon.command.*;
 
 import java.util.List;
@@ -75,22 +76,24 @@ public class SpellCommand
 
     private static CommandNode GetNodeForSpell(SpellCommand data, GameSpellDefinition definition)
     {
-        CommandNode SpellNameNode = new KeywordNode(definition.GetName(), null, KEY_SPELL_NAME);
-
         if (definition.GetRequirements().contains(SpellDataRequirement.TargetPlayer))
         {
+            CommandNode SpellNameNode = new KeywordNode(definition.GetName(), null, KEY_SPELL_NAME);
             SpellNameNode.AddSubNode(new PlayerSelectorNode(data::CastSpell, false, commandData ->
                     data._playerStateController.GetActiveGameInstance().GetActivePlayers().stream().filter(
                             IGamePlayer::IsAlive).map(IGamePlayer::GetMCPlayer).toList(),
                     1, KEY_SPELL_REQUIREMENT_PLAYER));
+            return SpellNameNode;
         }
-
-        return SpellNameNode;
+        else
+        {
+            return new KeywordNode(definition.GetName(), data::CastSpell, KEY_SPELL_NAME);
+        }
     }
 
     private static CommandNode GetCastNode(SpellCommand data)
     {
-        CommandNode CastNode = new KeywordNode(KEYWORD_CAST, data::GetHelp, null);
+        CommandNode CastNode = new KeywordNode(KEYWORD_CAST, null, null);
 
         for (GameSpellDefinition Definition : data._spells.GetSpells())
         {
@@ -102,6 +105,16 @@ public class SpellCommand
 
 
     // Private methods.
+    private boolean IsGameStateValid(CommandData data)
+    {
+        if (_playerStateController.GetActiveGameInstance().GetState() != MoleHuntGameState.InGame)
+        {
+            data.SetFeedback(Component.text("Cannot use /spell while not in-game."));
+            return false;
+        }
+        return true;
+    }
+
     private GameSpellArguments GetArguments(CommandData data)
     {
         List<Player> SelectedPlayers = data.GetParsedData(KEY_SPELL_REQUIREMENT_PLAYER);
@@ -121,6 +134,11 @@ public class SpellCommand
 
     private void CastSpell(CommandData data)
     {
+        if (!IsGameStateValid(data))
+        {
+            return;
+        }
+
         if (data.GetPlayerSender() == null)
         {
             data.SetStatus(CommandStatus.Unsuccessful);
@@ -143,6 +161,11 @@ public class SpellCommand
 
     private void GetHelp(CommandData data)
     {
+        if (!IsGameStateValid(data))
+        {
+            return;
+        }
+
         data.SetFeedback(Component.text("Use /spell cast to cast a spell." +
                 "\nUse /spell help <spell_name> to get a description of a spell.\nSpells have a cast cooldown.")
                 .color(NamedTextColor.GREEN));
@@ -150,17 +173,28 @@ public class SpellCommand
 
     private void GetHelpForSpell(CommandData data)
     {
+        if (!IsGameStateValid(data))
+        {
+            return;
+        }
+
         String SpellName = data.GetParsedData(KEY_SPELL_NAME);
         GameSpellDefinition Definition = _spells.GetSpell(SpellName);
 
         if (Definition == null)
         {
             data.SetFeedback(Component.text("That spell doesn't exist").color(NamedTextColor.RED));
+            return;
         }
-        else
-        {
-            data.SetFeedback(Component.text("Spell description: %s".formatted(Definition.GetDescription()))
-                    .color(NamedTextColor.WHITE));
-        }
+
+        Double RelativeCost = Definition.GetRelativeManaCost();
+        String ManaCostText = RelativeCost == null ? "variable" : "%s%%".formatted(
+                MoleHuntPlugin.GetNumberFormat("0.00").format(RelativeCost
+                        * _playerStateController.GetActiveGameInstance().GetMaxMana()));
+
+
+        data.SetFeedback(Component.text("Spell description: %s\nMana cost: %s".formatted(
+                Definition.GetDescription(), ManaCostText, ManaCostText))
+                .color(NamedTextColor.WHITE));
     }
 }

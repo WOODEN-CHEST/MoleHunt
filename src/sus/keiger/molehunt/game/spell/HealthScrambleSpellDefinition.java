@@ -1,5 +1,6 @@
 package sus.keiger.molehunt.game.spell;
 
+import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.TickClock;
@@ -15,13 +16,13 @@ public class HealthScrambleSpellDefinition extends GameSpellDefinition
     public HealthScrambleSpellDefinition()
     {
         super("HealthScramble", "Shows a random amount of health and food for the victim", SpellType.Sustained,
-                SpellDataRequirement.TargetPlayer);
+                0.6d, SpellDataRequirement.TargetPlayer);
     }
 
 
     // Inherited methods.
     @Override
-    public GameSpell CreateSpell(GameSpellArguments args, SpellServiceProvider services)
+    public GameSpell CreateSpell(GameSpellArguments args, IGameServices services)
     {
         return new HealthScrambleSpell(this, args, services);
     }
@@ -39,7 +40,7 @@ public class HealthScrambleSpellDefinition extends GameSpellDefinition
         // Constructors.
         public HealthScrambleSpell(GameSpellDefinition definition,
                               GameSpellArguments arguments,
-                              SpellServiceProvider services)
+                                   IGameServices services)
         {
             super(definition, arguments, services);
 
@@ -53,8 +54,8 @@ public class HealthScrambleSpellDefinition extends GameSpellDefinition
         // Methods.
         public void OnPacketIntercept(GamePacketEvent<SetHealthPacket> event)
         {
-            IGamePlayer TargetedPlayer = GetServices().GetGamePlayers().GetGamePlayer(
-                    GetServices().GetServerPlayers().GetPlayer(event.GetPlayer()));
+            IGamePlayer TargetedPlayer = GetServices().GetGamePlayerCollection().GetGamePlayer(
+                    GetServices().GetServerPlayerCollection().GetPlayer(event.GetPlayer()));
 
             if ((TargetedPlayer == null) || (TargetedPlayer.GetServerPlayer() != GetArguments().GetTargetPlayer()))
             {

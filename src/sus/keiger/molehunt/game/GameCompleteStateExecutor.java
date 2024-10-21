@@ -1,28 +1,19 @@
 package sus.keiger.molehunt.game;
 
-import sus.keiger.molehunt.IWorldProvider;
-import sus.keiger.molehunt.event.IEventDispatcher;
-import sus.keiger.molehunt.game.player.GamePlayerCollection;
 
 import java.util.Objects;
 
 public class GameCompleteStateExecutor extends GenericGameStateExecutor
 {
     // Private fields.
-    private final GamePlayerCollection _gamePlayers;
-    private final IEventDispatcher _eventDispatcher;
-    private final IWorldProvider _worldProvider;
+    private final IGameServices _gameServices;
 
 
     // Constructors.
-    public GameCompleteStateExecutor(GamePlayerCollection gamePlayerCollection,
-                                     IEventDispatcher eventDispatcher,
-                                     IWorldProvider worldProvider)
+    public GameCompleteStateExecutor(IGameServices services)
     {
         super(MoleHuntGameState.Complete);
-        _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
-        _gamePlayers = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
-        _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
+        _gameServices = Objects.requireNonNull(services, "services is null");
     }
 
 
@@ -31,11 +22,11 @@ public class GameCompleteStateExecutor extends GenericGameStateExecutor
     public void StartState()
     {
         GameWorldInitializer WorldInitializer = new GameWorldInitializer();
-        _worldProvider.GetWorlds().forEach(WorldInitializer::InitializeWorldNotInGame);
+        _gameServices.GetLocationProvider().GetWorlds().forEach(WorldInitializer::InitializeWorldNotInGame);
 
-        _gamePlayers.GetPlayers().forEach(player ->
+        _gameServices.GetGamePlayerCollection().GetPlayers().forEach(player ->
         {
-            player.UnsubscribeFromEvents(_eventDispatcher);
+            player.UnsubscribeFromEvents(_gameServices.GetEventDispatcher());
         });
     }
 

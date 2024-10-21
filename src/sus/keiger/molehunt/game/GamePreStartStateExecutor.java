@@ -23,9 +23,7 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
 {
     // Private fields.
     private final IMoleHuntGameInstance _moleHunt;
-    private final GamePlayerCollection _gamePlayers;
-    private final IEventDispatcher _eventDispatcher;
-    private final IWorldProvider _worldProvider;
+    private final IGameServices _gameServices;
     private final TickClock _clock = new TickClock();
 
     private final int STATE_DURATION_TICKS = PCMath.SecondsToTicks(10d);
@@ -34,23 +32,19 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
 
 
     // Constructors.
-    public GamePreStartStateExecutor(GamePlayerCollection gamePlayerCollection,
-                                     IEventDispatcher eventDispatcher,
-                                     IWorldProvider worldProvider,
+    public GamePreStartStateExecutor(IGameServices services,
                                      IMoleHuntGameInstance moleHunt)
     {
         super(MoleHuntGameState.PreGame);;
         _moleHunt = Objects.requireNonNull(moleHunt, "moleHunt is null");
-        _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
-        _gamePlayers = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
-        _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
+        _gameServices = Objects.requireNonNull(services, "services is null");
     }
 
 
     // Private methods.
     private void OnParticipantRemoveEvent(ParticipantRemoveEvent event)
     {
-        IGamePlayer Player = _gamePlayers.GetGamePlayer(event.GetPlayer());
+        IGamePlayer Player = _gameServices.GetGamePlayerCollection().GetGamePlayer(event.GetPlayer());
         if (Player != null)
         {
             DeinitializePlayer(Player);
@@ -59,7 +53,7 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
 
     private void DeinitializePlayer(IGamePlayer player)
     {
-        player.UnsubscribeFromEvents(_eventDispatcher);
+        player.UnsubscribeFromEvents(_gameServices.GetEventDispatcher());
     }
 
 
@@ -67,18 +61,18 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
     private void StartStatePlayer(IGamePlayer player)
     {
         player.SetTargetState(GamePlayerState.PreGame);
-        player.SubscribeToEvents(_eventDispatcher);
+        player.SubscribeToEvents(_gameServices.GetEventDispatcher());
     }
 
     private void ShowStartCountdownContent()
     {
-        _gamePlayers.ShowTitle(Title.title(Component.text(Integer.toString(
+        _gameServices.GetGamePlayerCollection().ShowTitle(Title.title(Component.text(Integer.toString(
                 (int)PCMath.TicksToSeconds(_clock.GetTicksLeft()))).color(NamedTextColor.GREEN),
                 Component.text("Game starting...").color(NamedTextColor.AQUA),
                 Title.Times.times(Duration.ZERO, Duration.ofMillis(START_TITLE_STAY_MILLISECONDS),
                         Duration.ofMillis(START_TITLE_FADE_OUT_MILLISECONDS))));
 
-        for (IServerPlayer TargetPlayer : _gamePlayers.GetParticipants())
+        for (IServerPlayer TargetPlayer : _gameServices.GetGamePlayerCollection().GetParticipants())
         {
             TargetPlayer.PlaySound(Sound.BLOCK_NOTE_BLOCK_HAT, TargetPlayer.GetMCPlayer().getLocation(),
                     SoundCategory.AMBIENT, 1f, 1f);
@@ -92,7 +86,7 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
 
     private void OnClockTick()
     {
-        _gamePlayers.GetActivePlayers().forEach(ITickable::Tick);
+        _gameServices.GetGamePlayerCollection().GetActivePlayers().forEach(ITickable::Tick);
         if (_clock.GetTicksLeft() % PCMath.TICKS_IN_SECOND == 0)
         {
             ShowStartCountdownContent();
@@ -110,9 +104,9 @@ public class GamePreStartStateExecutor extends GenericGameStateExecutor
         _clock.SetTickFunction(clock -> OnClockTick());
         _clock.SetIsRunning(true);
 
-        _gamePlayers.GetPlayers().forEach(this::StartStatePlayer);
+        _gameServices.GetGamePlayerCollection().GetPlayers().forEach(this::StartStatePlayer);
         GameWorldInitializer WorldInitializer = new GameWorldInitializer();
-        _worldProvider.GetWorlds().forEach(WorldInitializer::InitializeWorldNotInGame);
+        _gameServices.GetLocationProvider().GetWorlds().forEach(WorldInitializer::InitializeWorldNotInGame);
 
         _moleHunt.GetParticipantRemoveEvent().Subscribe(this, this::OnParticipantRemoveEvent);
     }

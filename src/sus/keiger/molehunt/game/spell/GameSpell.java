@@ -2,22 +2,21 @@ package sus.keiger.molehunt.game.spell;
 
 import java.util.Objects;
 
-import org.bukkit.Bukkit;
+import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.plugincommon.ITickable;
-import sus.keiger.plugincommon.PCPluginEvent;
 import sus.keiger.plugincommon.TickClock;
 
 public abstract class GameSpell implements ITickable
 {
     // Private fields.
-    private GameSpellDefinition _definition;
-    private GameSpellArguments _arguments;
-    private final SpellServiceProvider _services;
-    private TickClock _clock = new TickClock();
+    private final GameSpellDefinition _definition;
+    private final GameSpellArguments _arguments;
+    private final IGameServices _services;
+    private final TickClock _clock = new TickClock();
 
 
     // Constructors.
-    public GameSpell(GameSpellDefinition definition, GameSpellArguments arguments, SpellServiceProvider services)
+    public GameSpell(GameSpellDefinition definition, GameSpellArguments arguments, IGameServices services)
     {
         _definition = Objects.requireNonNull(definition, "definition is null");
         _arguments = Objects.requireNonNull(arguments, "arguments is null");
@@ -47,14 +46,19 @@ public abstract class GameSpell implements ITickable
         _clock.SetTicksLeft(value);
     }
 
-    public SpellServiceProvider GetServices()
+    public IGameServices GetServices()
     {
         return _services;
     }
 
-    public TickClock GetClock()
+    public double GetRelativeManaCost()
     {
-        return _clock;
+        Double Cost = GetDefinition().GetRelativeManaCost();
+        if (Cost != null)
+        {
+            return Cost;
+        }
+        return 0d;
     }
 
     public abstract void OnAdd();
