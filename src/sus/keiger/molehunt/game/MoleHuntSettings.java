@@ -57,6 +57,9 @@ public class MoleHuntSettings
     @FloatGameProperty(Name = "PlayerHealth", MinValue = 0.0001d, MaxValue = 1000d)
     private double _playerHealthHalfHearts = 20d;
 
+    @StringGameProperty(Name = "SkinPlayerName")
+    private String _skinPlayerName = "Default";
+
 
     // Constructors.
     public MoleHuntSettings() { }
@@ -73,9 +76,9 @@ public class MoleHuntSettings
         }
         else if (field.getType().equals(double.class))
         {
-            double MinValue = field.getAnnotationsByType(IntGameProperty.class)[0].MinValue();
-            double MaxValue = field.getAnnotationsByType(IntGameProperty.class)[0].MaxValue();
-            field.set(this, Math.max(MinValue, Math.min((Integer)value, MaxValue)));
+            double MinValue = field.getAnnotationsByType(FloatGameProperty.class)[0].MinValue();
+            double MaxValue = field.getAnnotationsByType(FloatGameProperty.class)[0].MaxValue();
+            field.set(this, Math.max(MinValue, Math.min((Double)value, MaxValue)));
         }
         else
         {
@@ -158,6 +161,10 @@ public class MoleHuntSettings
         return _manaRegenerationScale;
     }
 
+    public String GetSkinPlayerName()
+    {
+        return _skinPlayerName;
+    }
 
     public boolean SetValue(String fieldName, Object value)
     {
@@ -196,7 +203,8 @@ public class MoleHuntSettings
     public List<Field> GetProperties()
     {
         return Arrays.stream(MoleHuntSettings.class.getDeclaredFields()).filter(
-                property -> Stream.of(IntGameProperty.class, FloatGameProperty.class, BooleanGameProperty.class)
+                property -> Stream.of(IntGameProperty.class, FloatGameProperty.class,
+                                BooleanGameProperty.class, StringGameProperty.class)
                         .anyMatch(type -> property.getAnnotation(type) != null)).toList();
     }
 
@@ -218,6 +226,12 @@ public class MoleHuntSettings
         if (BooleanProperty != null)
         {
             return BooleanProperty.Name();
+        }
+
+        StringGameProperty StringProperty = field.getAnnotation(StringGameProperty.class);
+        if (StringProperty != null)
+        {
+            return StringProperty.Name();
         }
         return null;
     }

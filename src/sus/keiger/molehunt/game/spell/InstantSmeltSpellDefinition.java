@@ -18,7 +18,7 @@ public class InstantSmeltSpellDefinition extends GameSpellDefinition
     // Constructors.
     public InstantSmeltSpellDefinition()
     {
-        super("InstantSmelt", "Instantly smelts a smelt-able item in the player's inventory",
+        super("InstantSmelt", "Instantly smelts a smeltable item in the player's inventory.",
                 SpellType.Instant, 0.5d, SpellDataRequirement.TargetPlayer);
     }
 

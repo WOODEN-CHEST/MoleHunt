@@ -72,6 +72,10 @@ public class MoleHuntCommand
         {
             return new BooleanNode(commandData -> data.SetProperty(property, commandData), KEY_VALUE);
         }
+        else if (property.getType().equals(String.class))
+        {
+            return new StringNode(commandData -> data.SetProperty(property, commandData), false, null, KEY_VALUE);
+        }
         throw new IllegalStateException("Unsupported property type: %s".formatted(property.getType().getName()));
     }
 

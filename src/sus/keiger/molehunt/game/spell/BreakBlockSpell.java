@@ -12,7 +12,7 @@ public class BreakBlockSpell extends GameSpellDefinition
     // Constructors.
     public BreakBlockSpell()
     {
-        super("BreakBlock", "Breaks the block the spectator is looking at", SpellType.Instant, 0.23d,
+        super("BreakBlock", "Breaks the block the spectator is looking at.", SpellType.Instant, 0.23d,
                 SpellDataRequirement.LookingAtBlock);
     }
 

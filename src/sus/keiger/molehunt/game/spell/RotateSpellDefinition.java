@@ -10,7 +10,7 @@ public class RotateSpellDefinition extends GameSpellDefinition
     // Constructors.
     public RotateSpellDefinition()
     {
-        super("Rotate", "Randomly rotates the victim", SpellType.Instant, 0.2d,
+        super("Rotate", "Randomly rotates the victim.", SpellType.Instant, 0.2d,
                 SpellDataRequirement.TargetPlayer);
     }
 

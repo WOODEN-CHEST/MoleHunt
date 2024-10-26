@@ -2,6 +2,7 @@ package sus.keiger.molehunt.game.spell;
 
 import de.maxhenkel.voicechat.api.events.ClientReceiveSoundEvent;
 import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
+import de.maxhenkel.voicechat.plugins.impl.VoicechatServerApiImpl;
 import org.bukkit.Bukkit;
 import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.molehunt.player.IServerPlayer;
@@ -15,7 +16,7 @@ public class VoiceMuteSpellDefinition extends GameSpellDefinition
     // Constructors.
     public VoiceMuteSpellDefinition()
     {
-        super("VoiceChatMute", "Adds random effects to the victim's voice chat, making them mute.",
+        super("VoiceChatMute", "Randomizes the audio samples coming from the victim's microphone.",
                 SpellType.Sustained, 0.5d, SpellDataRequirement.TargetPlayer);
     }
 
@@ -32,7 +33,8 @@ public class VoiceMuteSpellDefinition extends GameSpellDefinition
     private static class VoiceMuteSpell extends GameSpell
     {
         // Fields.
-        public final int DURATION_TICKS = PCMath.SecondsToTicks(45d);
+        public final Random RNG = new Random();
+        public final int DURATION_TICKS = PCMath.SecondsToTicks(30);
 
 
         // Constructors.
@@ -62,8 +64,19 @@ public class VoiceMuteSpellDefinition extends GameSpellDefinition
                 return;
             }
 
-            byte[] Data = event.getPacket().getOpusEncodedData();
-            Arrays.fill(Data, (byte)0);
+            byte[] OPUSData = event.getPacket().getOpusEncodedData();
+            short[] PCMData = GetServices().GetVoiceChatController().GetAPI().createDecoder().decode(OPUSData);
+
+            for (int i = 0; i < PCMData.length; i++)
+            {
+                PCMData[i] = (short)RNG.nextInt(Short.MAX_VALUE + 1);
+            }
+
+            byte[] NewOPUSData = GetServices().GetVoiceChatController().GetAPI().createEncoder().encode(PCMData);
+            for (int i = 0; (i < NewOPUSData.length) && (i < OPUSData.length); i++)
+            {
+                OPUSData[i] = NewOPUSData[i];
+            }
         }
 
 

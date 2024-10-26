@@ -15,7 +15,7 @@ public class HealthScrambleSpellDefinition extends GameSpellDefinition
     // Constructors.
     public HealthScrambleSpellDefinition()
     {
-        super("HealthScramble", "Shows a random amount of health and food for the victim", SpellType.Sustained,
+        super("HealthScramble", "Shows a random amount of health and food for the victim.", SpellType.Sustained,
                 0.6d, SpellDataRequirement.TargetPlayer);
     }
 

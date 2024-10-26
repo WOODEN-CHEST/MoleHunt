@@ -81,8 +81,8 @@ public class GameItemModifier implements IGameStateContaining, IMoleHuntEventLis
 
     private void DeinitializeRecipes()
     {
-        _recipesToRemove.values().forEach(Bukkit::addRecipe);
         _recipesToAdd.keySet().forEach(Bukkit::removeRecipe);
+        _recipesToRemove.values().forEach(Bukkit::addRecipe);
         Bukkit.updateRecipes();
     }
 

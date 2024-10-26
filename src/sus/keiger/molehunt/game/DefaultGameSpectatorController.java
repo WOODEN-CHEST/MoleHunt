@@ -126,7 +126,7 @@ public class DefaultGameSpectatorController implements IGameSpectatorController
             _gameServices.GetGamePlayerCollection().GetPlayers().forEach(
                     player -> player.GetLifeChangeEvent().Unsubscribe(this));
         }
-        else if (_state != MoleHuntGameState.Initializing)
+        else if (_state == MoleHuntGameState.PreGame)
         {
             _gameServices.GetGamePlayerCollection().GetPlayers().forEach(
                     player -> player.GetLifeChangeEvent().Subscribe(this, this::OnGamePlayerLifeChangeEvent));

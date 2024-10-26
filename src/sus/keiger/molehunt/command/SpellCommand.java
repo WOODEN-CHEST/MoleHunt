@@ -188,7 +188,7 @@ public class SpellCommand
         }
 
         Double RelativeCost = Definition.GetRelativeManaCost();
-        String ManaCostText = RelativeCost == null ? "variable" : "%s%%".formatted(
+        String ManaCostText = RelativeCost == null ? "variable" : "%s".formatted(
                 MoleHuntPlugin.GetNumberFormat("0.00").format(RelativeCost
                         * _playerStateController.GetActiveGameInstance().GetMaxMana()));
 

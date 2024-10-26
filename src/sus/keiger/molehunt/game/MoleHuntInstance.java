@@ -60,7 +60,8 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
                 serverServices.GetPacketController(),
                 new GamePlayerCollection(),
                 new GameScoreboard(),
-                new GameLocationProvider(serverServices.GetWorldProvider()));
+                new GameLocationProvider(serverServices.GetWorldProvider()),
+                settings);
 
 
         // Init components.

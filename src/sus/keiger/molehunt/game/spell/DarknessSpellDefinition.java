@@ -11,7 +11,7 @@ public class DarknessSpellDefinition extends GameSpellDefinition
     // Constructors.
     public DarknessSpellDefinition()
     {
-        super("Darkness", "Gives the victim the darkness effect", SpellType.Instant, 0.3d,
+        super("Darkness", "Gives the victim the darkness effect.", SpellType.Instant, 0.3d,
                 SpellDataRequirement.TargetPlayer);
     }
 

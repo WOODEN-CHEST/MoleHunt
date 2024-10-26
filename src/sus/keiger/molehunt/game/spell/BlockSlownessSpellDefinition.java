@@ -12,7 +12,7 @@ public class BlockSlownessSpellDefinition extends GameSpellDefinition
     // Inherited methods.
     public BlockSlownessSpellDefinition()
     {
-        super("BlockSlowness", "Makes the victim dig blocks slower and reduces their block reach range",
+        super("BlockSlowness", "Makes the victim dig blocks slower and reduces their block reach range.",
                 SpellType.Instant, 0.4d, SpellDataRequirement.TargetPlayer);
     }
 
@@ -27,9 +27,9 @@ public class BlockSlownessSpellDefinition extends GameSpellDefinition
     private static class BlockSlownessSpell extends GameSpell
     {
         // Fields.
-        public final int SLOWNESS_DURATION_TICKS = PCMath.SecondsToTicks(30d);
-        public final double MINING_SPEED_MULTIPLIER = 0.7d;
-        public final double BLOCK_REACH_MULTIPLIER = 0.75d;
+        public final int SLOWNESS_DURATION_TICKS = PCMath.SecondsToTicks(20d);
+        public final double MINING_SPEED_MULTIPLIER = 0.6d;
+        public final double BLOCK_REACH_MULTIPLIER = 0.8d;
 
 
 

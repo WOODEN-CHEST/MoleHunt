@@ -105,6 +105,15 @@ public class MoleHuntPlugin extends JavaPlugin
         Spells.AddSpell(new BreakBlockSpell());
         Spells.AddSpell(new RandomEnchantSpellDefinition());
         Spells.AddSpell(new VoiceMuteSpellDefinition());
+        Spells.AddSpell(new BlockSlownessSpellDefinition());
+        Spells.AddSpell(new InstantSmeltSpellDefinition());
+        Spells.AddSpell(new RandomLootSpellDefinition());
+        Spells.AddSpell(new SmallCreeperSpellDefinition());
+        Spells.AddSpell(new DemoScreenSpellDefinition());
+        Spells.AddSpell(new ContainerSpellDefinition());
+        Spells.AddSpell(new RandomWeatherSpellDefinition());
+        Spells.AddSpell(new HotbarGrooveSpellDefinition());
+        Spells.AddSpell(new InvisSpellDefinition());
 
         return Spells;
     }

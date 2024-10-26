@@ -11,10 +11,13 @@ import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.voicechat.IVoiceChatController;
 import sus.keiger.plugincommon.PCPluginEvent;
 
+import java.util.Objects;
+
 public class DefaultVoiceChatController implements VoicechatPlugin, IVoiceChatController
 {
     // Private fields.
     private PCPluginEvent<MicrophonePacketEvent> _microphonePacketEvent = new PCPluginEvent<>();
+    private VoicechatApi _api;
 
 
     // Private methods.
@@ -38,6 +41,12 @@ public class DefaultVoiceChatController implements VoicechatPlugin, IVoiceChatCo
     }
 
     @Override
+    public VoicechatApi GetAPI()
+    {
+        return _api;
+    }
+
+    @Override
     public PCPluginEvent<MicrophonePacketEvent> GetMicrophonePacketEvent()
     {
         return _microphonePacketEvent;
@@ -46,7 +55,7 @@ public class DefaultVoiceChatController implements VoicechatPlugin, IVoiceChatCo
     @Override
     public void initialize(VoicechatApi api)
     {
-
+        _api = Objects.requireNonNull(api, "api is null");
     }
 
     @Override

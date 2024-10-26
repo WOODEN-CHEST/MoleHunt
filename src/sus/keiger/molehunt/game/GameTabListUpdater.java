@@ -4,6 +4,7 @@ import com.comphenix.protocol.wrappers.EnumWrappers;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.*;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import sus.keiger.molehunt.event.*;
 import sus.keiger.molehunt.game.event.MoleHuntGameEvent;
@@ -166,6 +167,7 @@ public class GameTabListUpdater implements IGameStateContaining, IMoleHuntEventL
 
     private void OnInfoUpdatePacketIntercept(GamePacketEvent<PlayerInfoUpdatePacket> packet)
     {
+        Bukkit.getLogger().warning("intercepted");
         IServerPlayer ServerPlayer = _gameServices.GetServerPlayerCollection().GetPlayer(packet.GetPlayer());
         if (_gameServices.GetGamePlayerCollection().ContainsParticipant(ServerPlayer))
         {

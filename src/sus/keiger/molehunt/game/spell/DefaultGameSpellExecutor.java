@@ -1,7 +1,10 @@
 package sus.keiger.molehunt.game.spell;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import sus.keiger.molehunt.MoleHuntPlugin;
@@ -28,7 +31,7 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
 
     private final double MAX_ABSOLUTE_MANA = 100d;
     private final int NOTIFICATION_DURATION_TICKS = PCMath.SecondsToTicks(5d);
-    private final double MANA_REGEN_PER_TICK = 1d / 6000d;
+    private final double RELATIVE_MANA_REGEN_PER_TICK = 1d / 9000d;
     public final int AVAILABLE_SPELL_CAST_MESSAGE_DURATION_TICKS = PCMath.SecondsToTicks(2.5);
     public final int MANA_ACTIONBAR_LIFESPAN_TICKS = PCMath.SecondsToTicks(3);
     public final long MANA_ACTIONBAR_ID = -41290812015L;
@@ -50,6 +53,7 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         {
             GamePlayerSpellData SpellData = new GamePlayerSpellData(player);
             SpellData.CastClock.SetHandler(clock -> ShowSpellAvailableEvent(player));
+            SetMana(SpellData, 1);
             _playerSpellData.put(player, new GamePlayerSpellData(player));
         }
     }
@@ -98,6 +102,7 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         {
             playerData.CastClock.SetTicksLeft(CooldownTicks);
         }
+        SetMana(playerData, playerData.RelativeMana - spell.GetRelativeManaCost());
 
         CreateSpellCastContent(castingPlayer, spell, args);
     }
@@ -126,7 +131,8 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         {
             castingPlayer.SendMessage(Component.text("Not enough mana to cast spell (%s / %s)".formatted(
                     _manaAvailableFormat.format(PlayerData.RelativeMana * MAX_ABSOLUTE_MANA),
-                    _manaAvailableFormat.format(CreatedSpell.GetRelativeManaCost() * MAX_ABSOLUTE_MANA))));
+                    _manaAvailableFormat.format(CreatedSpell.GetRelativeManaCost() * MAX_ABSOLUTE_MANA)))
+                    .color(NamedTextColor.RED));
             return;
         }
 
@@ -144,11 +150,21 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
     private void PlayerDataTick(GamePlayerSpellData data)
     {
         data.CastClock.Tick();
-        data.RelativeMana = Math.max(0d, Math.min(1d, data.RelativeMana + MANA_REGEN_PER_TICK));
+        SetMana(data, data.RelativeMana + (RELATIVE_MANA_REGEN_PER_TICK *
+                _gameServices.GetGameSettings().GetManaRegenerationScale()));
 
-        data.Player.ShowActionbar(new ActionbarMessage(MANA_ACTIONBAR_LIFESPAN_TICKS, Component.text(
-                "Mana: %s".formatted(_manaAvailableFormat.format(data.RelativeMana)))
-                .color(NamedTextColor.AQUA), MANA_ACTIONBAR_ID));
+        if ((_gameServices.GetGameSettings().GetCanAliveCastSpells() && data.Player.IsAlive())
+                || (_gameServices.GetGameSettings().GetCanDeadCastSpells() && !data.Player.IsAlive()))
+        {
+            data.Player.ShowActionbar(new ActionbarMessage(MANA_ACTIONBAR_LIFESPAN_TICKS, Component.text(
+                            "Mana: %s".formatted(_manaAvailableFormat.format(data.RelativeMana * MAX_ABSOLUTE_MANA)))
+                    .color(NamedTextColor.DARK_AQUA), MANA_ACTIONBAR_ID));
+        }
+    }
+
+    private void SetMana(GamePlayerSpellData data, double amount)
+    {
+        data.RelativeMana = Math.max(0d, Math.min(amount, 1d));
     }
 
 
@@ -158,7 +174,11 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
     {
         _state = Objects.requireNonNull(state, "state is null");
 
-        if (state != MoleHuntGameState.InGame)
+        if (state == MoleHuntGameState.PreGame)
+        {
+            _gameServices.GetGamePlayerCollection().GetPlayers().forEach(this::EnsurePlayerInMap);
+        }
+        else if (state != MoleHuntGameState.InGame)
         {
             _activeSpells.forEach(GameSpell::OnRemove);
             _activeSpells.clear();

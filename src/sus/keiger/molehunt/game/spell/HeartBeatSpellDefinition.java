@@ -11,7 +11,7 @@ public class HeartBeatSpellDefinition extends GameSpellDefinition
     // Constructors.
     public HeartBeatSpellDefinition()
     {
-        super("HeartBeat", "Plays a heart-beat sound to the player", SpellType.Sustained, 0.1d,
+        super("HeartBeat", "Plays a heart-beat sound to the player.", SpellType.Sustained, 0.1d,
                 SpellDataRequirement.TargetPlayer);
     }
 

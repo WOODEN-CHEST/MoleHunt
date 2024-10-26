@@ -19,6 +19,7 @@ public class DefaultGameServices implements IGameServices
     private final GamePlayerCollection _gamePlayerCollection;
     private final GameScoreboard _scoreBoard;
     private final IGameLocationProvider _locationProvider;
+    private final MoleHuntSettings _settings;
 
 
     // Constructors.
@@ -28,7 +29,8 @@ public class DefaultGameServices implements IGameServices
                                IGamePacketController packetController,
                                GamePlayerCollection gamePlayerCollection,
                                GameScoreboard scoreBoard,
-                               IGameLocationProvider locationProvider)
+                               IGameLocationProvider locationProvider,
+                               MoleHuntSettings settings)
     {
         _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
         _voiceChatController = Objects.requireNonNull(voiceChatController, "voiceChatController is null");
@@ -37,6 +39,7 @@ public class DefaultGameServices implements IGameServices
         _gamePlayerCollection = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
         _scoreBoard = Objects.requireNonNull(scoreBoard, "scoreBoard is null");
         _locationProvider = Objects.requireNonNull(locationProvider, "locationProvider is null");
+        _settings = Objects.requireNonNull(settings, "settings is null");
     }
 
 
@@ -44,48 +47,48 @@ public class DefaultGameServices implements IGameServices
     @Override
     public IEventDispatcher GetEventDispatcher()
     {
-        return null;
+        return _eventDispatcher;
     }
 
     @Override
     public IVoiceChatController GetVoiceChatController()
     {
-        return null;
+        return _voiceChatController;
     }
 
     @Override
     public IServerPlayerCollection GetServerPlayerCollection()
     {
-        return null;
+        return _serverPlayers;
     }
 
     @Override
     public IGamePacketController GetPacketController()
     {
-        return null;
+        return _packetController;
     }
 
     @Override
     public GamePlayerCollection GetGamePlayerCollection()
     {
-        return null;
+        return _gamePlayerCollection;
     }
 
     @Override
     public GameScoreboard GetScoreBoard()
     {
-        return null;
+        return _scoreBoard;
     }
 
     @Override
     public MoleHuntSettings GetGameSettings()
     {
-        return null;
+        return _settings;
     }
 
     @Override
     public IGameLocationProvider GetLocationProvider()
     {
-        return null;
+        return _locationProvider;
     }
 }
