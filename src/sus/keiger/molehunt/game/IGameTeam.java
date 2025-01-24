@@ -15,6 +15,7 @@ public interface IGameTeam extends IAudienceMemberHolder
     void ClearPlayers();
     List<IGamePlayer> GetPlayers();
     boolean ContainsPlayer(IGamePlayer player);
+    int GetPlayerCount();
     Color GetColor();
     String GetName();
 }

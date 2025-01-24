@@ -19,16 +19,16 @@ public class MoleHuntSettings
     private int _gracePeriodTimeTicks = PCMath.SecondsToTicks(60d * 5d);
 
     @IntGameProperty(Name = "MoleCountMin", MinValue = 1, MaxValue = Integer.MAX_VALUE)
-    private int _moleCountMin = 1;
+    private int _moleCountMin = 2;
 
     @IntGameProperty(Name = "MoleCountMax", MinValue = 1, MaxValue = Integer.MAX_VALUE)
-    private int _moleCountMax = 1;
+    private int _moleCountMax = 2;
 
     @BooleanGameProperty(Name = "DoesBorderShrink")
     private boolean _doesBorderShrink = true;
 
     @IntGameProperty(Name = "BorderSizeStart", MinValue = 1, MaxValue = Integer.MAX_VALUE)
-    private int _worldBorderSizeStartBlocks = 400;
+    private int _worldBorderSizeStartBlocks = 500;
 
     @IntGameProperty(Name = "BorderSizeEnd", MinValue = 1, MaxValue = Integer.MAX_VALUE)
     private int _worldBorderSizeEndBlocks = 50;
@@ -37,7 +37,7 @@ public class MoleHuntSettings
     private int _borderShrinkStartTimeTicks = PCMath.SecondsToTicks(60d * 10d);
 
     @IntGameProperty(Name = "SpellCooldownTicks", MinValue = 1, MaxValue = Integer.MAX_VALUE)
-    private int _spellCastCooldownTicks = PCMath.SecondsToTicks(15d);
+    private int _spellCastCooldownTicks = PCMath.SecondsToTicks(30d);
 
     @BooleanGameProperty(Name = "CanDeadCastSpells")
     private boolean _canDeadCastSpells = true;
@@ -46,7 +46,7 @@ public class MoleHuntSettings
     private boolean _canAliveCastSpells = false;
 
     @BooleanGameProperty(Name = "IsNotifiedOnSpellCast")
-    private boolean _isNotifiedOnSpellCast = true;
+    private boolean _isNotifiedOnSpellCast = false;
 
     @FloatGameProperty(Name = "ManaRegenerationScale", MinValue = 0d, MaxValue = 1000d)
     private double _manaRegenerationScale = 1d;
@@ -59,6 +59,9 @@ public class MoleHuntSettings
 
     @StringGameProperty(Name = "SkinPlayerName")
     private String _skinPlayerName = "Default";
+
+    @BooleanGameProperty(Name = "IsEachSpellCastUnique")
+    private boolean _isEachSpellCastUnique = true;
 
 
     // Constructors.
@@ -76,9 +79,14 @@ public class MoleHuntSettings
         }
         else if (field.getType().equals(double.class))
         {
+            double Value = (Double)value;
+            if (Double.isNaN(Value))
+            {
+                Value = 0d;
+            }
             double MinValue = field.getAnnotationsByType(FloatGameProperty.class)[0].MinValue();
             double MaxValue = field.getAnnotationsByType(FloatGameProperty.class)[0].MaxValue();
-            field.set(this, Math.max(MinValue, Math.min((Double)value, MaxValue)));
+            field.set(this, Math.max(MinValue, Math.min(Value, MaxValue)));
         }
         else
         {
@@ -164,6 +172,11 @@ public class MoleHuntSettings
     public String GetSkinPlayerName()
     {
         return _skinPlayerName;
+    }
+
+    public boolean GetIsEachSpellCastUnique()
+    {
+        return _isEachSpellCastUnique;
     }
 
     public boolean SetValue(String fieldName, Object value)

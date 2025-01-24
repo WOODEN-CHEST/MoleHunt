@@ -5,6 +5,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.EntityDamageEvent;
 import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.entity.EntityFunctions;
@@ -17,7 +18,7 @@ public class SmallCreeperSpellDefinition extends GameSpellDefinition
     public SmallCreeperSpellDefinition()
     {
         super("SmallCreeper", "Spawns a small and friendly creeper! Ok, maybe not so friendly.",
-                SpellType.Instant, 0.7d, SpellDataRequirement.TargetPlayer);
+                SpellDurationType.Sustained, SpellClass.Regular, 0.85d, SpellDataRequirement.TargetPlayer);
     }
 
 
@@ -44,15 +45,31 @@ public class SmallCreeperSpellDefinition extends GameSpellDefinition
                 "15 seconds and counting until your death."
         };
 
-        public double FUSE_DURATION = 15d;
+        public int FUSE_DURATION_TICKS = PCMath.SecondsToTicks(15d);
         public int EXPLOSION_RADIUS = 15;
         public double SCALE = 0.3d;
+        public Creeper SummonedCreeper;
+        public final double RECOVERY_HEARTS = 1d;
 
 
         // Constructors.
         public SmallCreeperSpell(GameSpellDefinition definition, GameSpellArguments arguments, IGameServices services)
         {
             super(definition, arguments, services);
+            SetTicksRemaining(FUSE_DURATION_TICKS + PCMath.TICKS_IN_SECOND);
+        }
+
+
+        // Methods.
+        public void OnEntityDamageEvent(EntityDamageEvent event)
+        {
+            if ((event.getEntity() != GetArguments().GetTargetPlayer().GetMCPlayer())
+                    || event.getDamageSource().getCausingEntity() != SummonedCreeper)
+            {
+                return;
+            }
+
+            event.setDamage(GetArguments().GetTargetPlayer().GetMCPlayer().getHealth() - PCMath.HeartsToHealth(1d));
         }
 
 
@@ -62,20 +79,25 @@ public class SmallCreeperSpellDefinition extends GameSpellDefinition
         {
             GetArguments().GetTargetPlayer().SendMessage(Component.text(
                     SpawnMessages[new Random().nextInt(SpawnMessages.length)]).color(NamedTextColor.RED));
-            Creeper TargetCreeper = (Creeper)GetServices().GetLocationProvider().GetOverworld().spawnEntity(
+            SummonedCreeper = (Creeper)GetServices().GetLocationProvider().GetOverworld().spawnEntity(
                     GetArguments().GetTargetPlayer().GetMCPlayer().getLocation(), EntityType.CREEPER);
-            TargetCreeper.setExplosionRadius(EXPLOSION_RADIUS);
-            TargetCreeper.setMaxFuseTicks(PCMath.SecondsToTicks(FUSE_DURATION));
-            TargetCreeper.setFuseTicks(0);
-            TargetCreeper.setIgnited(true);
-            TargetCreeper.setAI(false);
-            EntityFunctions.TrySetAttributeBaseValue(TargetCreeper, Attribute.GENERIC_SCALE, SCALE);
+            SummonedCreeper.setExplosionRadius(EXPLOSION_RADIUS);
+            SummonedCreeper.setMaxFuseTicks(FUSE_DURATION_TICKS);
+            SummonedCreeper.setFuseTicks(0);
+            SummonedCreeper.setIgnited(true);
+            SummonedCreeper.setAI(false);
+            EntityFunctions.TrySetAttributeBaseValue(SummonedCreeper, Attribute.GENERIC_SCALE, SCALE);
+
+            GetServices().GetEventDispatcher().GetEntityDamageEvent().Subscribe(this, this::OnEntityDamageEvent);
         }
 
         @Override
         public void Execute() { }
 
         @Override
-        public void OnRemove() { }
+        public void OnRemove()
+        {
+            GetServices().GetEventDispatcher().GetEntityDamageEvent().Unsubscribe(this);
+        }
     }
 }

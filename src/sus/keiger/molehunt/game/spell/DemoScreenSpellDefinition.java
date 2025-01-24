@@ -8,7 +8,7 @@ public class DemoScreenSpellDefinition extends GameSpellDefinition
     public DemoScreenSpellDefinition()
     {
         super("DemoScreen", "Shows the demo screen to the victim.",
-                SpellType.Instant, 0.3d, SpellDataRequirement.TargetPlayer);
+                SpellDurationType.Instant, SpellClass.Regular, 0.3d, SpellDataRequirement.TargetPlayer);
     }
 
 

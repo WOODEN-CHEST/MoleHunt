@@ -1,7 +1,6 @@
 package sus.keiger.molehunt.game.spell;
 
 import org.bukkit.Material;
-import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.PotionMeta;
@@ -16,8 +15,8 @@ public class RandomLootSpellDefinition extends GameSpellDefinition
 {
     public RandomLootSpellDefinition()
     {
-        super("RandomLoot", "Gives a random item to the victim.", SpellType.Instant,
-                0.5d, SpellDataRequirement.TargetPlayer);
+        super("RandomLoot", "Gives a random item to the victim.", SpellDurationType.Instant,
+                SpellClass.Regular, 0.5d, SpellDataRequirement.TargetPlayer);
     }
 
     @Override

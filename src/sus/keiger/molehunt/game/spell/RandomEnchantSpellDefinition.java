@@ -1,7 +1,5 @@
 package sus.keiger.molehunt.game.spell;
 
-import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import sus.keiger.molehunt.game.IGameServices;
@@ -15,8 +13,8 @@ public class RandomEnchantSpellDefinition extends GameSpellDefinition
     // Constructors.
     public RandomEnchantSpellDefinition()
     {
-        super("Enchant", "Randomly enchants a random item in the victim's inventory.", SpellType.Instant, 0.75d,
-                SpellDataRequirement.TargetPlayer);
+        super("Enchant", "Randomly enchants a random item in the victim's inventory.",
+                SpellDurationType.Instant, SpellClass.Regular, 0.75d, SpellDataRequirement.TargetPlayer);
     }
 
 

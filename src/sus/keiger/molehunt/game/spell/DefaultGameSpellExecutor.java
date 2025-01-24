@@ -1,19 +1,13 @@
 package sus.keiger.molehunt.game.spell;
 
-import io.papermc.paper.registry.RegistryAccess;
-import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import sus.keiger.molehunt.MoleHuntPlugin;
-import sus.keiger.molehunt.game.IGameServices;
-import sus.keiger.molehunt.game.MoleHuntGameState;
+import sus.keiger.molehunt.game.*;
 import sus.keiger.molehunt.game.player.IGamePlayer;
-import sus.keiger.plugincommon.IterationSafeSet;
-import sus.keiger.plugincommon.PCMath;
-import sus.keiger.plugincommon.TickClock;
+import sus.keiger.plugincommon.*;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
 
 import java.text.NumberFormat;
@@ -35,6 +29,7 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
     public final int AVAILABLE_SPELL_CAST_MESSAGE_DURATION_TICKS = PCMath.SecondsToTicks(2.5);
     public final int MANA_ACTIONBAR_LIFESPAN_TICKS = PCMath.SecondsToTicks(3);
     public final long MANA_ACTIONBAR_ID = -41290812015L;
+    public final double STARTING_MANA = 0.4d;
 
 
     // Constructors.
@@ -47,15 +42,21 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
 
 
     // Private methods.
-    private void EnsurePlayerInMap(IGamePlayer player)
+    /* Spell casts. */
+    private double GetPlayerCountDivisor(IGameTeam team)
     {
-        if (!_playerSpellData.containsKey(player))
+        int PlayersWhoCanCastSpellsCount = 0;
+        if (_gameServices.GetGameSettings().GetCanAliveCastSpells())
         {
-            GamePlayerSpellData SpellData = new GamePlayerSpellData(player);
-            SpellData.CastClock.SetHandler(clock -> ShowSpellAvailableEvent(player));
-            SetMana(SpellData, 1);
-            _playerSpellData.put(player, new GamePlayerSpellData(player));
+            PlayersWhoCanCastSpellsCount += (int)team.GetPlayers().stream()
+                    .filter(IGamePlayer::IsAlive).count();
         }
+        if (_gameServices.GetGameSettings().GetCanDeadCastSpells())
+        {
+            PlayersWhoCanCastSpellsCount += (int)team.GetPlayers().stream()
+                    .filter(player -> !player.IsAlive()).count();
+        }
+        return Math.max(PlayersWhoCanCastSpellsCount, 1);
     }
 
     private void CreateSpellCastContent(IGamePlayer castingPlayer,
@@ -80,6 +81,20 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         }
     }
 
+    private void GiftMana(IGamePlayer targetPlayer, double amount)
+    {
+        if (targetPlayer == null)
+        {
+            return;
+        }
+
+        EnsurePlayerInMap(targetPlayer);
+        GamePlayerSpellData PlayerData = _playerSpellData.get(targetPlayer);
+        SetGiftedMana(PlayerData, PlayerData.RelativeGiftedMana + amount);
+        targetPlayer.SendMessage(Component.text("You were gifted %s mana!".formatted(_manaCostFormat.format(amount)))
+                .color(NamedTextColor.GREEN));
+    }
+
     private void CastSpell(IGamePlayer castingPlayer,
                            GameSpell spell,
                            GameSpellArguments args,
@@ -87,7 +102,7 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
     {
         spell.OnAdd();
 
-        if (spell.GetDefinition().GetType() == SpellType.Instant)
+        if (spell.GetDefinition().GetDurationType() == SpellDurationType.Instant)
         {
             spell.Tick();
             spell.OnRemove();
@@ -102,41 +117,131 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         {
             playerData.CastClock.SetTicksLeft(CooldownTicks);
         }
-        SetMana(playerData, playerData.RelativeMana - spell.GetRelativeManaCost());
+
+        double GiftedManaAmount = spell.GetGiftedManaAmount();
+        if (GiftedManaAmount > 0d)
+        {
+            GiftMana(_gameServices.GetGamePlayerCollection().GetGamePlayer(args.GetTargetPlayer()), GiftedManaAmount);
+        }
+
+        if (!CanPlayerCastSpell(playerData.Player) && (spell.GetRelativeManaCost() <= playerData.RelativeGiftedMana))
+        {
+            SetGiftedMana(playerData, 0d);
+        }
+        else
+        {
+            SetMana(playerData, playerData.RelativeMana - spell.GetRelativeManaCost());
+        }
+
+        if (_gameServices.GetGameSettings().GetIsEachSpellCastUnique())
+        {
+            playerData.UsedSpells.add(spell.GetDefinition());
+        }
 
         CreateSpellCastContent(castingPlayer, spell, args);
     }
 
-    private void TryCastSpell(IGamePlayer castingPlayer, GameSpellDefinition definition, GameSpellArguments args)
+    private boolean CanPlayerCastSpell(IGamePlayer player)
     {
-        if (castingPlayer.IsAlive() && !_gameServices.GetGameSettings().GetCanAliveCastSpells())
+        return (player.IsAlive() && _gameServices.GetGameSettings().GetCanAliveCastSpells())
+                || (!player.IsAlive() && _gameServices.GetGameSettings().GetCanDeadCastSpells());
+    }
+
+    private boolean CheckGenericSpellPreconditions(GameSpellDefinition definition,
+                                                   GamePlayerSpellData playerData)
+    {
+        if (( playerData.RelativeGiftedMana <= 0d) && CanPlayerCastSpell(playerData.Player))
         {
-            castingPlayer.SendMessage(Component.text("Alive players may not cast spells").color(NamedTextColor.RED));
-            return;
+            playerData.Player.SendMessage(Component.text("You may not cast spells in your state.")
+                    .color(NamedTextColor.RED));
+            return false;
         }
-        else if (!castingPlayer.IsAlive() && !_gameServices.GetGameSettings().GetCanDeadCastSpells())
+        else if (_playerSpellData.get(playerData.Player).CastClock.GetTicksLeft() > 0)
         {
-            castingPlayer.SendMessage(Component.text("Dead players may not cast spells").color(NamedTextColor.RED));
-            return;
+            playerData.Player.SendMessage(Component.text("Spell cast is on cooldown.")
+                    .color(NamedTextColor.RED));
+            return false;
         }
-        else if (_playerSpellData.get(castingPlayer).CastClock.GetTicksLeft() > 0)
+        else if (playerData.UsedSpells.contains(definition))
         {
-            castingPlayer.SendMessage(Component.text("Spell cast is on cooldown").color(NamedTextColor.RED));
-            return;
+            playerData.Player.SendMessage(Component.text("You have already casted this spell.")
+                    .color(NamedTextColor.RED));
+            return false;
+        }
+        return true;
+    }
+
+
+    private GameSpell TryCreateSpellFromDefinition(IGamePlayer castingPlayer,
+                                                   GameSpellDefinition definition,
+                                                   GameSpellArguments args,
+                                                   GamePlayerSpellData playerData)
+    {
+        if (!CheckGenericSpellPreconditions(definition, playerData))
+        {
+            return null;
         }
 
         GameSpell CreatedSpell = definition.CreateSpell(args, _gameServices);
-        GamePlayerSpellData PlayerData = _playerSpellData.get(castingPlayer);
-        if (CreatedSpell.GetRelativeManaCost() > PlayerData.RelativeMana)
+        boolean CanCastSpell = CanPlayerCastSpell(castingPlayer);
+        if ((CanCastSpell && CreatedSpell.GetRelativeManaCost() <= playerData.RelativeMana)
+            || (!CanCastSpell && CreatedSpell.GetRelativeManaCost() <= playerData.RelativeGiftedMana))
         {
-            castingPlayer.SendMessage(Component.text("Not enough mana to cast spell (%s / %s)".formatted(
-                    _manaAvailableFormat.format(PlayerData.RelativeMana * MAX_ABSOLUTE_MANA),
-                    _manaAvailableFormat.format(CreatedSpell.GetRelativeManaCost() * MAX_ABSOLUTE_MANA)))
-                    .color(NamedTextColor.RED));
-            return;
+            return CreatedSpell;
         }
 
-        CastSpell(castingPlayer, definition.CreateSpell(args, _gameServices), args, PlayerData);
+        castingPlayer.SendMessage(Component.text("Not enough mana to cast spell (%s / %s)".formatted(
+                        _manaAvailableFormat.format(playerData.RelativeMana * MAX_ABSOLUTE_MANA),
+                        _manaAvailableFormat.format(CreatedSpell.GetRelativeManaCost() * MAX_ABSOLUTE_MANA)))
+                .color(NamedTextColor.RED));
+        return null;
+    }
+
+
+    private void TryCastSpell(IGamePlayer castingPlayer, GameSpellDefinition definition, GameSpellArguments args)
+    {
+        GamePlayerSpellData PlayerData = _playerSpellData.get(castingPlayer);
+        GameSpell Spell = TryCreateSpellFromDefinition(castingPlayer, definition, args, PlayerData);
+        if (Spell != null)
+        {
+            CastSpell(castingPlayer, definition.CreateSpell(args, _gameServices), args, PlayerData);
+        }
+    }
+
+
+
+    /* Player. */
+    private void ShowMana(GamePlayerSpellData data)
+    {
+        if ((data.RelativeGiftedMana > 0d) || CanPlayerCastSpell(data.Player))
+        {
+            data.Player.ShowActionbar(new ActionbarMessage(MANA_ACTIONBAR_LIFESPAN_TICKS, Component.text(
+                            "Mana: %s".formatted(_manaAvailableFormat.format(data.RelativeMana * MAX_ABSOLUTE_MANA)))
+                    .color(NamedTextColor.DARK_AQUA), MANA_ACTIONBAR_ID));
+        }
+    }
+
+
+    private void PlayerDataTick(GamePlayerSpellData data)
+    {
+        data.CastClock.Tick();
+
+        double ManaRegenerated = (_gameServices.GetGameSettings().GetManaRegenerationScale()
+                * RELATIVE_MANA_REGEN_PER_TICK / GetPlayerCountDivisor(
+                        _gameServices.GetGamePlayerCollection().GetTeamOfPlayer(data.Player)));
+        SetMana(data, data.RelativeMana + ManaRegenerated);
+
+        ShowMana(data);
+    }
+
+    private void SetMana(GamePlayerSpellData data, double amount)
+    {
+        data.RelativeMana = Math.max(0d, Math.min(amount, 1d));
+    }
+
+    private void SetGiftedMana(GamePlayerSpellData data, double amount)
+    {
+        data.RelativeGiftedMana = Math.max(0d, Math.min(amount, 1d));
     }
 
     private void ShowSpellAvailableEvent(IGamePlayer gamePlayer)
@@ -147,24 +252,15 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
                 SoundCategory.PLAYERS, 0.4f, 2f);
     }
 
-    private void PlayerDataTick(GamePlayerSpellData data)
+    private void EnsurePlayerInMap(IGamePlayer player)
     {
-        data.CastClock.Tick();
-        SetMana(data, data.RelativeMana + (RELATIVE_MANA_REGEN_PER_TICK *
-                _gameServices.GetGameSettings().GetManaRegenerationScale()));
-
-        if ((_gameServices.GetGameSettings().GetCanAliveCastSpells() && data.Player.IsAlive())
-                || (_gameServices.GetGameSettings().GetCanDeadCastSpells() && !data.Player.IsAlive()))
+        if (!_playerSpellData.containsKey(player))
         {
-            data.Player.ShowActionbar(new ActionbarMessage(MANA_ACTIONBAR_LIFESPAN_TICKS, Component.text(
-                            "Mana: %s".formatted(_manaAvailableFormat.format(data.RelativeMana * MAX_ABSOLUTE_MANA)))
-                    .color(NamedTextColor.DARK_AQUA), MANA_ACTIONBAR_ID));
+            GamePlayerSpellData SpellData = new GamePlayerSpellData(player);
+            SpellData.CastClock.SetHandler(clock -> ShowSpellAvailableEvent(player));
+            SetMana(SpellData, STARTING_MANA);
+            _playerSpellData.put(player, new GamePlayerSpellData(player));
         }
-    }
-
-    private void SetMana(GamePlayerSpellData data, double amount)
-    {
-        data.RelativeMana = Math.max(0d, Math.min(amount, 1d));
     }
 
 
@@ -245,7 +341,10 @@ public class DefaultGameSpellExecutor implements IGameSpellExecutor
         // Fields.
         public final IGamePlayer Player;
         public final TickClock CastClock = new TickClock();
-        public double RelativeMana;
+        public double RelativeMana = 0d;
+        public double RelativeGiftedMana = 0d;
+        public final Set<GameSpellDefinition> UsedSpells = new HashSet<>();
+
 
 
         // Constructors.

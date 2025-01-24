@@ -184,7 +184,6 @@ public class InGameStateExecutor extends GenericGameStateExecutor
         _gameServices.GetGamePlayerCollection().GetPlayers().forEach(player ->
         {
             PlayerEndState(player);
-            player.GetLifeChangeEvent().Unsubscribe(this);
         });
         _graceClock.SetIsRunning(false);
         _clock.SetIsRunning(false);
@@ -212,11 +211,6 @@ public class InGameStateExecutor extends GenericGameStateExecutor
         int MinMoles = _gameServices.GetGameSettings().GetMoleCountMin();
         int MaxMoles = Math.max(MinMoles, _gameServices.GetGameSettings().GetMoleCountMax());
         RoleAssigned.AssignRoles(_gameServices.GetGamePlayerCollection(), MinMoles, MaxMoles);
-    }
-
-    private void OnPlayerLifeChangeEvent(GamePlayerLifeChangeEvent event)
-    {
-        _gameServices.GetScoreBoard().RemoveFromTeam(event.GetPlayer().GetServerPlayer());
     }
 
 
@@ -252,11 +246,7 @@ public class InGameStateExecutor extends GenericGameStateExecutor
                 world, _gameServices.GetGameSettings().GetBorderSizeStartBlocks()));
 
         AssignRoles();
-        _gameServices.GetGamePlayerCollection().GetPlayers().forEach(player ->
-        {
-            StartStatePlayer(player);
-            player.GetLifeChangeEvent().Subscribe(this, this::OnPlayerLifeChangeEvent);
-        });
+        _gameServices.GetGamePlayerCollection().GetPlayers().forEach(this::StartStatePlayer);
 
         _moleHunt.GetParticipantRemoveEvent().Subscribe(this, this::OnParticipantRemoveEvent);
     }

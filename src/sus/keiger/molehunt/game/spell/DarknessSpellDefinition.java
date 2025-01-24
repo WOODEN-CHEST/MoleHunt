@@ -4,15 +4,14 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.plugincommon.PCMath;
-import sus.keiger.plugincommon.TickClock;
 
 public class DarknessSpellDefinition extends GameSpellDefinition
 {
     // Constructors.
     public DarknessSpellDefinition()
     {
-        super("Darkness", "Gives the victim the darkness effect.", SpellType.Instant, 0.3d,
-                SpellDataRequirement.TargetPlayer);
+        super("Darkness", "Gives the victim the darkness effect.", SpellDurationType.Instant,
+                SpellClass.Regular, 0.3d, SpellDataRequirement.TargetPlayer);
     }
 
 

@@ -14,18 +14,22 @@ public abstract class GameSpellDefinition
     private Set<SpellDataRequirement> _dataRequirements;
     private String _description;
     private Double _manaCost;
-    private SpellType _type;
+    private SpellDurationType _durationType;
+    private SpellClass _targetClass;
 
 
     // Constructors.
     public GameSpellDefinition(String name,
                                String description,
-                               SpellType type,
+                               SpellDurationType durationType,
+                               SpellClass targetClass,
                                Double relativeManaCost,
                                SpellDataRequirement ... requirements)
     {
         _name = Objects.requireNonNull(name, "name is null");
         _description = Objects.requireNonNull(description, "description is null");
+        _durationType = Objects.requireNonNull(durationType, "durationType is null");
+        _targetClass = Objects.requireNonNull(targetClass, "targetClass is null");
         _manaCost = relativeManaCost;
         _dataRequirements = Arrays.stream(requirements).collect(Collectors.toSet());
     }
@@ -47,14 +51,19 @@ public abstract class GameSpellDefinition
         return _dataRequirements;
     }
 
-    public SpellType GetType()
+    public SpellDurationType GetDurationType()
     {
-        return _type;
+        return _durationType;
     }
 
     public Double GetRelativeManaCost()
     {
         return _manaCost;
+    }
+
+    public SpellClass GetClassification()
+    {
+        return _targetClass;
     }
 
     public abstract GameSpell CreateSpell(GameSpellArguments args, IGameServices services);

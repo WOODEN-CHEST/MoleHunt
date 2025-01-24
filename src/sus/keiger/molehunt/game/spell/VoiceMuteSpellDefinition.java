@@ -1,9 +1,6 @@
 package sus.keiger.molehunt.game.spell;
 
-import de.maxhenkel.voicechat.api.events.ClientReceiveSoundEvent;
 import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
-import de.maxhenkel.voicechat.plugins.impl.VoicechatServerApiImpl;
-import org.bukkit.Bukkit;
 import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.plugincommon.PCMath;
@@ -17,7 +14,7 @@ public class VoiceMuteSpellDefinition extends GameSpellDefinition
     public VoiceMuteSpellDefinition()
     {
         super("VoiceChatMute", "Randomizes the audio samples coming from the victim's microphone.",
-                SpellType.Sustained, 0.5d, SpellDataRequirement.TargetPlayer);
+                SpellDurationType.Sustained, SpellClass.Regular, 0.5d, SpellDataRequirement.TargetPlayer);
     }
 
 
@@ -67,10 +64,7 @@ public class VoiceMuteSpellDefinition extends GameSpellDefinition
             byte[] OPUSData = event.getPacket().getOpusEncodedData();
             short[] PCMData = GetServices().GetVoiceChatController().GetAPI().createDecoder().decode(OPUSData);
 
-            for (int i = 0; i < PCMData.length; i++)
-            {
-                PCMData[i] = (short)RNG.nextInt(Short.MAX_VALUE + 1);
-            }
+            Arrays.fill(PCMData, (short)0);
 
             byte[] NewOPUSData = GetServices().GetVoiceChatController().GetAPI().createEncoder().encode(PCMData);
             for (int i = 0; (i < NewOPUSData.length) && (i < OPUSData.length); i++)

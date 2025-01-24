@@ -8,15 +8,13 @@ import sus.keiger.plugincommon.packet.GamePacketEvent;
 import sus.keiger.plugincommon.packet.clientbound.SetHealthPacket;
 import sus.keiger.plugincommon.player.PlayerFunctions;
 
-import java.util.Random;
-
 public class HealthScrambleSpellDefinition extends GameSpellDefinition
 {
     // Constructors.
     public HealthScrambleSpellDefinition()
     {
-        super("HealthScramble", "Shows a random amount of health and food for the victim.", SpellType.Sustained,
-                0.6d, SpellDataRequirement.TargetPlayer);
+        super("HealthScramble", "Shows a random amount of health and food for the victim.",
+                SpellDurationType.Sustained, SpellClass.Regular, 0.6d, SpellDataRequirement.TargetPlayer);
     }
 
 
@@ -74,8 +72,7 @@ public class HealthScrambleSpellDefinition extends GameSpellDefinition
 
         public void SetPacketData(IGamePlayer targetedPlayer, SetHealthPacket packet)
         {
-            Random RNG = new Random();
-            packet.SetHealth((float)(targetedPlayer.GetMaxHealth().GetValue() * RNG.nextDouble()));
+            packet.SetHealth((float)(targetedPlayer.GetMaxHealth().GetValue()));
             packet.SetFood(PlayerFunctions.MAX_FOOD / 2);
         }
 

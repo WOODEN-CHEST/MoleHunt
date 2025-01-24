@@ -69,6 +69,12 @@ public class MoleHuntTeam implements IGameTeam
     }
 
     @Override
+    public int GetPlayerCount()
+    {
+        return _players.size();
+    }
+
+    @Override
     public Color GetColor()
     {
         return _color;

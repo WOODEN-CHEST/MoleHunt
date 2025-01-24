@@ -1,17 +1,9 @@
 package sus.keiger.molehunt.game.spell;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.entity.Creeper;
-import org.bukkit.entity.EntityType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.plugincommon.PCMath;
-import sus.keiger.plugincommon.entity.EntityFunctions;
-
-import java.util.Random;
 
 public class InvisSpellDefinition extends GameSpellDefinition
 {
@@ -19,7 +11,7 @@ public class InvisSpellDefinition extends GameSpellDefinition
     public InvisSpellDefinition()
     {
         super("Invisibility", "Makes the victim invisible for 15 seconds.",
-                SpellType.Instant, 0.35d, SpellDataRequirement.TargetPlayer);
+                SpellDurationType.Instant, SpellClass.Regular, 0.35d, SpellDataRequirement.TargetPlayer);
     }
 
 

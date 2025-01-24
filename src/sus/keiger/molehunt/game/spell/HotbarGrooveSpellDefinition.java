@@ -13,7 +13,7 @@ public class HotbarGrooveSpellDefinition extends GameSpellDefinition
     public HotbarGrooveSpellDefinition()
     {
         super("Hotbar", "Makes the hotbar do a groovy dance for the victim.",
-                SpellType.Sustained, 0.7d, SpellDataRequirement.TargetPlayer);
+                SpellDurationType.Sustained, SpellClass.Regular, 0.7d, SpellDataRequirement.TargetPlayer);
     }
 
 

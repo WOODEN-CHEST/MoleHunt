@@ -12,7 +12,7 @@ public class ShakeSpellDefinition extends GameSpellDefinition
     // Constructors.
     public ShakeSpellDefinition()
     {
-        super("Shake", "Shakes the victim's camera.", SpellType.Sustained, 0.8d,
+        super("Shake", "Shakes the victim's camera.", SpellDurationType.Sustained, SpellClass.Regular, 0.8d,
                 SpellDataRequirement.TargetPlayer);
     }
 

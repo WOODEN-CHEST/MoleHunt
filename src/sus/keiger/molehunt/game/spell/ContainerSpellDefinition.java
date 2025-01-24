@@ -21,7 +21,7 @@ public class ContainerSpellDefinition extends GameSpellDefinition
     public ContainerSpellDefinition()
     {
         super("Container", "Makes the victim open and close random containers.",
-                SpellType.Sustained, 0.43d, SpellDataRequirement.TargetPlayer);
+                SpellDurationType.Sustained, SpellClass.Regular, 0.43d, SpellDataRequirement.TargetPlayer);
     }
 
 

@@ -61,6 +61,11 @@ public abstract class GameSpell implements ITickable
         return 0d;
     }
 
+    public double GetGiftedManaAmount()
+    {
+        return 0d;
+    }
+
     public abstract void OnAdd();
 
     public abstract void Execute();

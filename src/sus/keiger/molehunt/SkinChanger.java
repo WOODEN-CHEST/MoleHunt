@@ -1,20 +1,16 @@
 package sus.keiger.molehunt;
 
 import org.bukkit.Bukkit;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.event.IMoleHuntEventListener;
 import sus.keiger.molehunt.game.MoleHuntSettings;
-import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.molehunt.service.IServerServices;
 import sus.keiger.plugincommon.packet.GamePacketEvent;
 import sus.keiger.plugincommon.packet.clientbound.PacketPlayerInfo;
 import sus.keiger.plugincommon.packet.clientbound.PlayerInfoUpdatePacket;
+import sus.keiger.plugincommon.player.PlayerSkin;
 
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 public class SkinChanger implements IMoleHuntEventListener
@@ -42,10 +38,15 @@ public class SkinChanger implements IMoleHuntEventListener
             return;
         }
 
+        PlayerSkin TargetSkin =  _services.GetMojangAPIClient().GetSkin(_gameSettings.GetSkinPlayerName());
+        if (TargetSkin == null)
+        {
+            return;
+        }
+
         for (PacketPlayerInfo Info : event.GetPacket().GetPlayerInfo())
         {
-            Info.SetTexture(Bukkit.createProfile(SkinID).getProperties().stream().filter(property -> property.getName()
-                            .equals(PacketPlayerInfo.KEY_TEXTURES)).findFirst().get().getValue());
+            Info.SetTexture(TargetSkin.Value(), TargetSkin.Signature());
         }
     }
 

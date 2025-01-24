@@ -16,3 +16,6 @@ commands:
 
   spell:
     description: Casts a spell
+
+  tpto:
+    description: teleports to a game player

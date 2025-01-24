@@ -29,6 +29,8 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
     @Override
     public void SwitchState(GamePlayerState state)
     {
+        
+        GetGameServices().GetScoreBoard().RemoveFromTeam(GetPlayer().GetServerPlayer());
         _state = Objects.requireNonNull(state, "state is null");
         GetPlayer().GetMaxHealth().ClearModifiers();
         GetPlayer().GetMiningSpeed().ClearModifiers();

@@ -17,6 +17,7 @@ import sus.keiger.molehunt.player.*;
 import sus.keiger.molehunt.service.DefaultServerServices;
 import sus.keiger.molehunt.service.IServerServices;
 import sus.keiger.molehunt.voicechat.IVoiceChatController;
+import sus.keiger.plugincommon.CachedMojangAPIClient;
 import sus.keiger.plugincommon.ITickable;
 import sus.keiger.plugincommon.command.ServerCommand;
 import sus.keiger.plugincommon.packet.PCGamePacketController;
@@ -135,7 +136,8 @@ public class MoleHuntPlugin extends JavaPlugin
 
         // Create server components.
         IServerServices Services = new DefaultServerServices(EventDispatcher,
-                VoiceChatController, WorldProvider, Players, PacketController);
+                VoiceChatController, WorldProvider, Players, PacketController,
+                new CachedMojangAPIClient(getLogger()));
 
         GameSpellCollection Spells = GetSpellCollection();
 
@@ -143,10 +145,10 @@ public class MoleHuntPlugin extends JavaPlugin
 
         IServerLobby Lobby = CreateLobby(WorldProvider, Players, EventDispatcher);
 
-
         MoleHuntSettings GameSettings = new MoleHuntSettings();
         IPlayerStateController PlayerStateController =
                 new DefaultPlayerStateController(Services, GameSettings, Lobby);
+        SkinChanger PlayerSkinChanger = new SkinChanger(Services, GameSettings);
 
 
         // Initialize created components and objects.
@@ -157,11 +159,11 @@ public class MoleHuntPlugin extends JavaPlugin
         Bukkit.getPluginManager().registerEvents(EventDispatcher, this);
         PacketController.StartListeningForPackets();
         ExistenceController.ReloadPlayers();
+        PlayerSkinChanger.SubscribeToEvents(EventDispatcher);
 
         List<ITickable> Tickables = List.of(ExistenceController, Lobby, PlayerStateController);
         EventDispatcher.GetTickStartEvent().Subscribe(this, event -> Tickables.forEach(ITickable::Tick));
         VoiceChatController.SubscribeToEvents(EventDispatcher);
-
 
         // Commands.
         RegisterCommands(PlayerStateController, GameSettings, Players, Spells);

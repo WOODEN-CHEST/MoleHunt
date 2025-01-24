@@ -48,7 +48,8 @@ public class GameTabListUpdater implements IGameStateContaining, IMoleHuntEventL
         {
             PacketPlayerInfo Info = new PacketPlayerInfo(participant.GetMCPlayer());
             Info.SetTabName(Component.text("???").color(NamedTextColor.WHITE));
-            Info.SetGameMode(GameMode.SURVIVAL);
+            Info.SetGameMode(targetPlayer == participant ? participant.GetMCPlayer().getGameMode()
+                    : GameMode.SURVIVAL);
             return Info;
         }).toList());
 
@@ -61,7 +62,8 @@ public class GameTabListUpdater implements IGameStateContaining, IMoleHuntEventL
         PlayerInfoUpdatePacket Packet = new PlayerInfoUpdatePacket();
         Packet.SetPlayerInfoActions(Set.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER,
                 EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME,
-                EnumWrappers.PlayerInfoAction.UPDATE_LISTED));
+                EnumWrappers.PlayerInfoAction.UPDATE_LISTED,
+                EnumWrappers.PlayerInfoAction.UPDATE_GAME_MODE));
 
         Packet.SetPlayerInfo(_gameServices.GetGamePlayerCollection().GetParticipants().stream()
                 .map(participant ->
@@ -86,7 +88,8 @@ public class GameTabListUpdater implements IGameStateContaining, IMoleHuntEventL
                             .decoration(TextDecoration.ITALIC, false));
 
                     Info.SetTabName(Builder.build());
-                    Info.SetGameMode(GameMode.SURVIVAL);
+                    Info.SetGameMode(targetPlayer == participant ? participant.GetMCPlayer().getGameMode()
+                            : GameMode.SURVIVAL);
                     return Info;
                 }).toList());
 
@@ -114,11 +117,14 @@ public class GameTabListUpdater implements IGameStateContaining, IMoleHuntEventL
     {
         PlayerInfoUpdatePacket Packet = new PlayerInfoUpdatePacket();
         Packet.SetPlayerInfoActions(Set.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER,
-                EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME, EnumWrappers.PlayerInfoAction.UPDATE_LISTED));
+                EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME,
+                EnumWrappers.PlayerInfoAction.UPDATE_LISTED,
+                EnumWrappers.PlayerInfoAction.UPDATE_GAME_MODE));
 
         Packet.SetPlayerInfo(_gameServices.GetGamePlayerCollection().GetParticipants().stream().map(participant ->
         {
             PacketPlayerInfo Info = new PacketPlayerInfo(participant.GetMCPlayer());
+            Info.SetGameMode(targetPlayer.GetMCPlayer().getGameMode());
 
             if (_gameServices.GetGamePlayerCollection().ContainsSpectator(participant))
             {
@@ -167,7 +173,6 @@ public class GameTabListUpdater implements IGameStateContaining, IMoleHuntEventL
 
     private void OnInfoUpdatePacketIntercept(GamePacketEvent<PlayerInfoUpdatePacket> packet)
     {
-        Bukkit.getLogger().warning("intercepted");
         IServerPlayer ServerPlayer = _gameServices.GetServerPlayerCollection().GetPlayer(packet.GetPlayer());
         if (_gameServices.GetGamePlayerCollection().ContainsParticipant(ServerPlayer))
         {
@@ -190,7 +195,6 @@ public class GameTabListUpdater implements IGameStateContaining, IMoleHuntEventL
     {
         _state = Objects.requireNonNull(state, "state is null");;
         UpdateTabListForPlayers();
-
     }
 
     @Override

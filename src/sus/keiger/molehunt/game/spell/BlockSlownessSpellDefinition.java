@@ -1,7 +1,6 @@
 package sus.keiger.molehunt.game.spell;
 
 import sus.keiger.molehunt.game.IGameServices;
-import sus.keiger.molehunt.game.IGameTeam;
 import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.value.GameModifiableValueModifier;
@@ -13,7 +12,7 @@ public class BlockSlownessSpellDefinition extends GameSpellDefinition
     public BlockSlownessSpellDefinition()
     {
         super("BlockSlowness", "Makes the victim dig blocks slower and reduces their block reach range.",
-                SpellType.Instant, 0.4d, SpellDataRequirement.TargetPlayer);
+                SpellDurationType.Instant, SpellClass.Regular, 0.4d, SpellDataRequirement.TargetPlayer);
     }
 
     @Override

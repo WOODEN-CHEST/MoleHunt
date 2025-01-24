@@ -5,15 +5,13 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.util.RayTraceResult;
 import sus.keiger.molehunt.game.IGameServices;
 
-import java.util.Random;
-
 public class BreakBlockSpell extends GameSpellDefinition
 {
     // Constructors.
     public BreakBlockSpell()
     {
-        super("BreakBlock", "Breaks the block the spectator is looking at.", SpellType.Instant, 0.23d,
-                SpellDataRequirement.LookingAtBlock);
+        super("BreakBlock", "Breaks the block the spectator is looking at.", SpellDurationType.Instant,
+                SpellClass.Regular, 0.23d, SpellDataRequirement.LookingAtBlock);
     }
 
 

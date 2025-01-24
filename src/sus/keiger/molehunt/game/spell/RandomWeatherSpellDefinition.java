@@ -1,10 +1,6 @@
 package sus.keiger.molehunt.game.spell;
 
-import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
-import org.bukkit.WeatherType;
 import sus.keiger.molehunt.game.IGameServices;
-import sus.keiger.molehunt.player.IServerPlayer;
-import sus.keiger.plugincommon.PCMath;
 
 import java.util.Random;
 
@@ -14,7 +10,7 @@ public class RandomWeatherSpellDefinition extends GameSpellDefinition
     public RandomWeatherSpellDefinition()
     {
         super("RandomWeather", "Randomizes the world's weather.",
-                SpellType.Instant, 0.3d);
+                SpellDurationType.Instant, SpellClass.Regular, 0.3d);
     }
 
 

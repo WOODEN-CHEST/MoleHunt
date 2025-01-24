@@ -1,6 +1,5 @@
 package sus.keiger.molehunt.game.spell;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.*;
@@ -9,7 +8,6 @@ import sus.keiger.plugincommon.player.ItemSearchResult;
 import sus.keiger.plugincommon.player.PlayerFunctions;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
@@ -19,7 +17,7 @@ public class InstantSmeltSpellDefinition extends GameSpellDefinition
     public InstantSmeltSpellDefinition()
     {
         super("InstantSmelt", "Instantly smelts a smeltable item in the player's inventory.",
-                SpellType.Instant, 0.5d, SpellDataRequirement.TargetPlayer);
+                SpellDurationType.Instant, SpellClass.Regular, 0.5d, SpellDataRequirement.TargetPlayer);
     }
 
 
