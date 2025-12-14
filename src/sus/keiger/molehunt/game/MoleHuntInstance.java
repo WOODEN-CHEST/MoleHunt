@@ -8,7 +8,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.game.event.*;
 import sus.keiger.molehunt.game.player.*;
-import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.player.*;
 import sus.keiger.molehunt.service.DefaultServerServices;
 import sus.keiger.molehunt.service.IServerServices;
@@ -25,7 +24,6 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
     private final Map<MoleHuntGameState, IGameStateExecutor> _stateExecutors = new HashMap<>();
     private final IGameSpectatorController _spectatorController;
     private final GameChatInterceptor _chatInterceptor;
-    private final IGameSpellExecutor _spellExecutor;
     private final GameCommandInterceptor _commandInterceptor;
     private final GameAdvancementInterceptor _advancementInterceptor;
     private final GameTabListUpdater _tabUpdater;
@@ -55,7 +53,6 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
         // Init services.
         _gameServices = new DefaultGameServices(
                 serverServices.GetEventDispatcher(),
-                serverServices.GetVoiceChatController(),
                 serverServices.GetServerPlayerCollection(),
                 serverServices.GetPacketController(),
                 new GamePlayerCollection(),
@@ -68,7 +65,6 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
         _spectatorController = new DefaultGameSpectatorController(_gameServices);
         _chatInterceptor = new GameChatInterceptor(_gameServices);
 
-        _spellExecutor = new DefaultGameSpellExecutor(_gameServices);
         _commandInterceptor = new GameCommandInterceptor(_gameServices);
         _advancementInterceptor = new GameAdvancementInterceptor(_gameServices);
         _tabUpdater = new GameTabListUpdater(_gameServices, this);
@@ -145,35 +141,34 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
 
 
     /* Events. */
-    private void OnPlayerQuitEvent(PlayerQuitEvent event)
-    {
-        IServerPlayer ServerPlayer = _gameServices.GetServerPlayerCollection().GetPlayer(event.getPlayer());
-        if (ContainsSpectator(ServerPlayer))
-        {
-            RemoveSpectator(ServerPlayer);
-            return;
-        }
-
-        IGamePlayer GamePlayer = _gameServices.GetGamePlayerCollection().GetGamePlayer(ServerPlayer);
-        if (GamePlayer == null)
-        {
-            return;
-        }
-        OnGamePlayerQuit(GamePlayer);
-    }
-
-    private void OnGamePlayerQuit(IGamePlayer player)
-    {
-        _gameServices.GetGamePlayerCollection().UpdateCollection();
-        player.SetIsAlive(false);
-        _participantRemoveEvent.FireEvent(new ParticipantRemoveEvent(this, player.GetServerPlayer()));
-    }
+//    private void OnPlayerQuitEvent(PlayerQuitEvent event)
+//    {
+//        IServerPlayer ServerPlayer = _gameServices.GetServerPlayerCollection().GetPlayer(event.getPlayer());
+//        if (ContainsSpectator(ServerPlayer))
+//        {
+//            RemoveSpectator(ServerPlayer);
+//            return;
+//        }
+//
+//        IGamePlayer GamePlayer = _gameServices.GetGamePlayerCollection().GetGamePlayer(ServerPlayer);
+//        if (GamePlayer == null)
+//        {
+//            return;
+//        }
+//        OnGamePlayerQuit(GamePlayer);
+//    }
+//
+//    private void OnGamePlayerQuit(IGamePlayer player)
+//    {
+//        _gameServices.GetGamePlayerCollection().UpdateCollection();
+//        player.SetIsAlive(false);
+//        _participantRemoveEvent.FireEvent(new ParticipantRemoveEvent(this, player.GetServerPlayer()));
+//    }
 
     private void SubscribeToEvents()
     {
         IEventDispatcher Dispatcher = _gameServices.GetEventDispatcher();
 
-        Dispatcher.GetPlayerQuitEvent().Subscribe(this, this::OnPlayerQuitEvent);
         _chatInterceptor.SubscribeToEvents(Dispatcher);
         _commandInterceptor.SubscribeToEvents(Dispatcher);
         _advancementInterceptor.SubscribeToEvents(Dispatcher);
@@ -221,7 +216,6 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
 
         GetCurrentExecutor().StartState();
         _spectatorController.SetState(state);
-        _spellExecutor.SetState(state);
         _chatInterceptor.SetState(state);
         _advancementInterceptor.SetState(state);
         _tabUpdater.SetState(state);
@@ -287,6 +281,7 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
             return false;
         }
 
+        GetPlayers().forEach(player -> player.GetServerPlayer().AddReference(this));
         SetState(MoleHuntGameState.PreGame);
         SubscribeToEvents();
 
@@ -301,6 +296,7 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
             return false;
         }
 
+        GetPlayers().forEach(player -> player.GetServerPlayer().AddReference(this));
         SetState(MoleHuntGameState.PostGame);
         return true;
     }
@@ -313,6 +309,7 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
             return;
         }
 
+        GetPlayers().forEach(player -> player.GetServerPlayer().AddReference(this));
         SendMessage(Component.text("Game cancelled").color(NamedTextColor.RED));
         SetState(MoleHuntGameState.Complete);
     }
@@ -368,18 +365,6 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
     }
 
     @Override
-    public void CastSpell(GameSpellDefinition definition, GameSpellArguments args)
-    {
-        _spellExecutor.CastSpell(definition, args);
-    }
-
-    @Override
-    public double GetMaxMana()
-    {
-        return _spellExecutor.GetMaxMana();
-    }
-
-    @Override
     public PCPluginEvent<MoleHuntPreStartEvent> GetPreStartEvent()
     {
         return _preStartEvent;
@@ -419,7 +404,6 @@ public class MoleHuntInstance implements IMoleHuntGameInstance
     public void Tick()
     {
         GetCurrentExecutor().Tick();
-        _spellExecutor.Tick();
     }
 
     @Override

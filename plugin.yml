@@ -2,7 +2,7 @@ main: sus.keiger.molehunt.MoleHuntPlugin
 version: 1.21
 api-version: 1.21
 name: MoleHuntWC
-depend: [ProtocolLib, voicechat]
+depend: [ProtocolLib]
 
 permissions:
   isOP:
@@ -13,9 +13,6 @@ commands:
   molehunt:
     permission: isOP
     description: Controls molehunt start and end
-
-  spell:
-    description: Casts a spell
 
   tpto:
     description: teleports to a game player

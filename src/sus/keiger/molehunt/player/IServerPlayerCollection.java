@@ -15,4 +15,5 @@ public interface IServerPlayerCollection extends IAudienceMemberHolder
     void RemovePlayer(IServerPlayer player);
     void ClearPlayers();
     boolean ContainsPlayer(IServerPlayer player);
+    boolean ContainsPlayer(UUID uuid);
 }

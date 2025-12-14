@@ -22,11 +22,5 @@ public interface IGamePlayer extends  IModifiablePlayerStats, ITickable, IMoleHu
     boolean GetMayDealDamage();
     void SetMayDealDamage(boolean value);
 
-    GameModifiableValue GetMaxHealth();
-    GameModifiableValue GetMiningSpeed();
-    GameModifiableValue GetEntityReach();
-    GameModifiableValue GetAttackSpeed();
-    GameModifiableValue GetBlockReach();
-
     PCPluginEvent<GamePlayerLifeChangeEvent> GetLifeChangeEvent();
 }

@@ -47,7 +47,6 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
         PlayerFunctions.ResetAttributes(MCPlayer);
         MCPlayer.setFreezeTicks(0);
         MCPlayer.setFireTicks(0);
-        MCPlayer.setVisualFire(false);
         MCPlayer.setLevel(0);
         MCPlayer.setExp(0);
         MCPlayer.setVelocity(new Vector());
@@ -74,7 +73,6 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
     private void InGameTick()
     {
         ShowNearestPlayerDistance();
-        UpdateAttributes();
     }
 
     private void PostGameTick()
@@ -94,7 +92,6 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
         _state = GamePlayerState.InGame;
         GetPlayer().GetMCPlayer().setInvulnerable(false);
         ResetPlayer();
-        UpdateAttributes();
     }
 
     private void SwitchToPostGameState()
@@ -137,19 +134,6 @@ public class AlivePlayerExecutor extends PlayerExecutorBase
                 NEAREST_PLAYER_ACTIONBAR_DURATION_TICKS, Message, MESSAGE_ID));
     }
 
-    private void UpdateAttributes()
-    {
-        EntityFunctions.TrySetAttributeBaseValue(GetPlayer().GetMCPlayer(), Attribute.GENERIC_MAX_HEALTH,
-                GetPlayer().GetMaxHealth().GetValue());
-        EntityFunctions.TrySetAttributeBaseValue(GetPlayer().GetMCPlayer(), Attribute.GENERIC_ATTACK_SPEED,
-                GetPlayer().GetAttackSpeed().GetValue());
-        EntityFunctions.TrySetAttributeBaseValue(GetPlayer().GetMCPlayer(), Attribute.PLAYER_BLOCK_BREAK_SPEED,
-                GetPlayer().GetMiningSpeed().GetValue());
-        EntityFunctions.TrySetAttributeBaseValue(GetPlayer().GetMCPlayer(), Attribute.PLAYER_ENTITY_INTERACTION_RANGE,
-                GetPlayer().GetEntityReach().GetValue());
-        EntityFunctions.TrySetAttributeBaseValue(GetPlayer().GetMCPlayer(), Attribute.PLAYER_BLOCK_INTERACTION_RANGE,
-                GetPlayer().GetBlockReach().GetValue());
-    }
 
     // Inherited methods.
     @Override

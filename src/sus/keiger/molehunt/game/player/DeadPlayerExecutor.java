@@ -16,7 +16,6 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
 {
     // Private fields.
     private GamePlayerState _state = GamePlayerState.PreGame;
-    private double MAX_RAY_TRACE_DISTANCE = 64d;
 
 
     // Constructors.
@@ -32,11 +31,6 @@ public class DeadPlayerExecutor extends PlayerExecutorBase
         
         GetGameServices().GetScoreBoard().RemoveFromTeam(GetPlayer().GetServerPlayer());
         _state = Objects.requireNonNull(state, "state is null");
-        GetPlayer().GetMaxHealth().ClearModifiers();
-        GetPlayer().GetMiningSpeed().ClearModifiers();
-        GetPlayer().GetAttackSpeed().ClearModifiers();
-        GetPlayer().GetEntityReach().ClearModifiers();
-        GetPlayer().GetBlockReach().ClearModifiers();
         GetPlayer().GetMCPlayer().setGameMode(GameMode.SPECTATOR);
     }
 

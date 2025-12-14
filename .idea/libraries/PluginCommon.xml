@@ -1,7 +1,7 @@
 <component name="libraryTable">
   <library name="PluginCommon">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/../../PluginCommon/out/artifacts/PluginCommon/PluginCommon.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../PluginCommon/out/artifacts/PluginCommon/PluginCommon.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

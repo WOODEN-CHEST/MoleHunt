@@ -7,16 +7,13 @@ import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
 import sus.keiger.molehunt.command.MoleHuntCommand;
-import sus.keiger.molehunt.command.SpellCommand;
 import sus.keiger.molehunt.event.*;
 import sus.keiger.molehunt.game.MoleHuntSettings;
-import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.lobby.*;
 import sus.keiger.molehunt.player.DefaultServerPlayerCollection;
 import sus.keiger.molehunt.player.*;
 import sus.keiger.molehunt.service.DefaultServerServices;
 import sus.keiger.molehunt.service.IServerServices;
-import sus.keiger.molehunt.voicechat.IVoiceChatController;
 import sus.keiger.plugincommon.CachedMojangAPIClient;
 import sus.keiger.plugincommon.ITickable;
 import sus.keiger.plugincommon.command.ServerCommand;
@@ -26,6 +23,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class MoleHuntPlugin extends JavaPlugin
 {
@@ -82,41 +80,11 @@ public class MoleHuntPlugin extends JavaPlugin
 
     private void RegisterCommands(IPlayerStateController playerStateController,
                                   MoleHuntSettings settings,
-                                  IServerPlayerCollection serverPlayers,
-                                  GameSpellCollection spells)
+                                  Logger logger)
     {
-        ServerCommand MCommand = MoleHuntCommand.CreateCommand(playerStateController, settings);
+        ServerCommand MCommand = MoleHuntCommand.CreateCommand(logger, playerStateController, settings);
         Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setTabCompleter(MCommand);
         Bukkit.getPluginCommand(MoleHuntCommand.LABEL).setExecutor(MCommand);
-
-        ServerCommand SCommand = SpellCommand.CreateCommand(playerStateController, spells, serverPlayers);
-        Bukkit.getPluginCommand(SpellCommand.LABEL).setTabCompleter(SCommand);
-        Bukkit.getPluginCommand(SpellCommand.LABEL).setExecutor(SCommand);
-    }
-
-    private GameSpellCollection GetSpellCollection()
-    {
-        GameSpellCollection Spells = new GameSpellCollection();
-
-        Spells.AddSpell(new HeartBeatSpellDefinition());
-        Spells.AddSpell(new HealthScrambleSpellDefinition());
-        Spells.AddSpell(new RotateSpellDefinition());
-        Spells.AddSpell(new ShakeSpellDefinition());
-        Spells.AddSpell(new DarknessSpellDefinition());
-        Spells.AddSpell(new BreakBlockSpell());
-        Spells.AddSpell(new RandomEnchantSpellDefinition());
-        Spells.AddSpell(new VoiceMuteSpellDefinition());
-        Spells.AddSpell(new BlockSlownessSpellDefinition());
-        Spells.AddSpell(new InstantSmeltSpellDefinition());
-        Spells.AddSpell(new RandomLootSpellDefinition());
-        Spells.AddSpell(new SmallCreeperSpellDefinition());
-        Spells.AddSpell(new DemoScreenSpellDefinition());
-        Spells.AddSpell(new ContainerSpellDefinition());
-        Spells.AddSpell(new RandomWeatherSpellDefinition());
-        Spells.AddSpell(new HotbarGrooveSpellDefinition());
-        Spells.AddSpell(new InvisSpellDefinition());
-
-        return Spells;
     }
 
 
@@ -130,16 +98,13 @@ public class MoleHuntPlugin extends JavaPlugin
         PCGamePacketController PacketController = new PCGamePacketController(
                 this, ProtocolLibrary.getProtocolManager());
         IEventDispatcher EventDispatcher = new DefaultEventDispatcher();
-        IVoiceChatController VoiceChatController = new DefaultVoiceChatController();
 
 
 
         // Create server components.
         IServerServices Services = new DefaultServerServices(EventDispatcher,
-                VoiceChatController, WorldProvider, Players, PacketController,
+                WorldProvider, Players, PacketController,
                 new CachedMojangAPIClient(getLogger()));
-
-        GameSpellCollection Spells = GetSpellCollection();
 
         IPlayerExistenceController ExistenceController = new PlayerExistenceController(Players);
 
@@ -163,10 +128,9 @@ public class MoleHuntPlugin extends JavaPlugin
 
         List<ITickable> Tickables = List.of(ExistenceController, Lobby, PlayerStateController);
         EventDispatcher.GetTickStartEvent().Subscribe(this, event -> Tickables.forEach(ITickable::Tick));
-        VoiceChatController.SubscribeToEvents(EventDispatcher);
 
         // Commands.
-        RegisterCommands(PlayerStateController, GameSettings, Players, Spells);
+        RegisterCommands(PlayerStateController, GameSettings, getLogger());
     }
 
     @Override

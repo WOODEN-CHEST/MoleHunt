@@ -4,9 +4,6 @@ import sus.keiger.molehunt.event.IMoleHuntEventListener;
 import sus.keiger.molehunt.game.event.*;
 import sus.keiger.molehunt.game.player.IGamePlayer;
 import sus.keiger.molehunt.game.player.IPlayerStats;
-import sus.keiger.molehunt.game.spell.GameSpellArguments;
-import sus.keiger.molehunt.game.spell.GameSpellCollection;
-import sus.keiger.molehunt.game.spell.GameSpellDefinition;
 import sus.keiger.molehunt.player.IAudienceMemberHolder;
 import sus.keiger.molehunt.player.IServerPlayer;
 import sus.keiger.plugincommon.ITickable;
@@ -35,9 +32,6 @@ public interface IMoleHuntGameInstance extends ITickable, IAudienceMemberHolder
     List<IServerPlayer> GetSpectators(IServerPlayer player);
 
     long GetGameID();
-
-    void CastSpell(GameSpellDefinition definition, GameSpellArguments args);
-    double GetMaxMana();
 
 
     PCPluginEvent<MoleHuntPreStartEvent> GetPreStartEvent();

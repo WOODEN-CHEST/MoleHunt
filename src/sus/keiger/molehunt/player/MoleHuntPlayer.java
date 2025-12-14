@@ -7,17 +7,23 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+import sus.keiger.plugincommon.EmptyEvent;
+import sus.keiger.plugincommon.PCPluginEvent;
 import sus.keiger.plugincommon.player.actionbar.ActionbarContainer;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public class MoleHuntPlayer implements IServerPlayer
 {
     // Private fields.
-    private final Player _mcPlayer;
+    private Player _mcPlayer;
     private final ActionbarContainer _actionbar = new ActionbarContainer();
+    private final Set<Object> _references = new HashSet<>();
+    private final PCPluginEvent<PlayerReferenceCountChangeEvent> _referenceCountChangeEvent = new PCPluginEvent<>();
 
 
     // Constructors.
@@ -28,6 +34,12 @@ public class MoleHuntPlayer implements IServerPlayer
 
 
     // Inherited methods.
+    @Override
+    public void SetMCPlayer(Player player)
+    {
+        _mcPlayer = Objects.requireNonNull(player, "player is null");
+    }
+
     @Override
     public Player GetMCPlayer()
     {
@@ -56,6 +68,32 @@ public class MoleHuntPlayer implements IServerPlayer
     public boolean IsAdmin()
     {
         return _mcPlayer.isOp();
+    }
+
+    @Override
+    public void AddReference(Object ref)
+    {
+        _references.add(Objects.requireNonNull(ref, "ref is null"));
+        _referenceCountChangeEvent.FireEvent(new PlayerReferenceCountChangeEvent(this));
+    }
+
+    @Override
+    public int GetReferenceCount()
+    {
+        return _references.size();
+    }
+
+    @Override
+    public void RemoveReference(Object ref)
+    {
+        _references.remove(Objects.requireNonNull(ref, "ref is null"));
+        _referenceCountChangeEvent.FireEvent(new PlayerReferenceCountChangeEvent(this));
+    }
+
+    @Override
+    public PCPluginEvent<PlayerReferenceCountChangeEvent> GetReferenceCountChangeEvent()
+    {
+        return _referenceCountChangeEvent;
     }
 
     @Override

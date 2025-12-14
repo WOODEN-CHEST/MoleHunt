@@ -3,7 +3,6 @@ package sus.keiger.molehunt.service;
 import sus.keiger.molehunt.IWorldProvider;
 import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.player.IServerPlayerCollection;
-import sus.keiger.molehunt.voicechat.IVoiceChatController;
 import sus.keiger.plugincommon.IMojangAPIClient;
 import sus.keiger.plugincommon.packet.IGamePacketController;
 
@@ -13,7 +12,6 @@ public class DefaultServerServices implements IServerServices
 {
     // Private fields.
     private final IEventDispatcher _eventDispatcher;
-    private final IVoiceChatController _voiceChatController;
     private final IWorldProvider _worldProvider;
     private final IServerPlayerCollection _serverPlayers;
     private final IGamePacketController _packetController;
@@ -22,14 +20,12 @@ public class DefaultServerServices implements IServerServices
 
     // Constructors.
     public DefaultServerServices(IEventDispatcher eventDispatcher,
-                                 IVoiceChatController voiceChatController,
                                  IWorldProvider worldProvider,
                                  IServerPlayerCollection serverPlayers,
                                  IGamePacketController packetController,
                                  IMojangAPIClient mojangAPIClient)
     {
         _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
-        _voiceChatController = Objects.requireNonNull(voiceChatController, "voiceChatController is null");
         _worldProvider = Objects.requireNonNull(worldProvider, "worldProvider is null");
         _serverPlayers = Objects.requireNonNull(serverPlayers, "serverPlayers is null");
         _packetController =Objects.requireNonNull(packetController, "packetController is null");
@@ -42,12 +38,6 @@ public class DefaultServerServices implements IServerServices
     public IEventDispatcher GetEventDispatcher()
     {
         return _eventDispatcher;
-    }
-
-    @Override
-    public IVoiceChatController GetVoiceChatController()
-    {
-        return _voiceChatController;
     }
 
     @Override

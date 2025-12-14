@@ -12,7 +12,7 @@ import java.util.*;
 public class DefaultServerPlayerCollection implements IServerPlayerCollection
 {
     // Private fields.
-    private final Map<Player, IServerPlayer> _players = new IterationSafeMap<>();
+    private final Map<UUID, IServerPlayer> _players = new IterationSafeMap<>();
     private List<IServerPlayer> _playerCopy = Collections.emptyList();
 
 
@@ -20,19 +20,25 @@ public class DefaultServerPlayerCollection implements IServerPlayerCollection
     @Override
     public IServerPlayer GetPlayer(Player mcPlayer)
     {
-        return _players.get(Objects.requireNonNull(mcPlayer, "mcPlayer is null"));
+        return _players.get(Objects.requireNonNull(mcPlayer, "mcPlayer is null").getUniqueId());
     }
 
     @Override
     public IServerPlayer GetPlayer(UUID uuid)
     {
-        return _players.get(Bukkit.getPlayer(Objects.requireNonNull(uuid, "uuid is null")));
+        return Optional.ofNullable(Bukkit.getPlayer(Objects.requireNonNull(uuid, "uuid is null")))
+                .map(Player::getUniqueId)
+                .map(_players::get)
+                .orElse(null);
     }
 
     @Override
     public IServerPlayer GetPlayer(String name)
     {
-        return _players.get(Bukkit.getPlayerExact(Objects.requireNonNull(name, "name is null")));
+        return Optional.ofNullable(Bukkit.getPlayerExact(Objects.requireNonNull(name, "name is null")))
+                .map(Player::getUniqueId)
+                .map(_players::get)
+                .orElse(null);
     }
 
     @Override
@@ -45,7 +51,7 @@ public class DefaultServerPlayerCollection implements IServerPlayerCollection
     public void AddPlayer(IServerPlayer player)
     {
         Objects.requireNonNull(player, "player is null");
-        _players.put(player.GetMCPlayer(), player);
+        _players.put(player.GetUUID(), player);
         _playerCopy = List.copyOf(_players.values());
     }
 
@@ -53,7 +59,7 @@ public class DefaultServerPlayerCollection implements IServerPlayerCollection
     public void RemovePlayer(IServerPlayer player)
     {
         Objects.requireNonNull(player, "player is null");
-        _players.remove(player.GetMCPlayer());
+        _players.remove(player.GetMCPlayer().getUniqueId());
         _playerCopy = List.copyOf(_players.values());
     }
 
@@ -67,12 +73,18 @@ public class DefaultServerPlayerCollection implements IServerPlayerCollection
     @Override
     public boolean ContainsPlayer(IServerPlayer player)
     {
-        IServerPlayer TargetPlayer = _players.get(Objects.requireNonNull(player, "player is null").GetMCPlayer());
+        IServerPlayer TargetPlayer = _players.get(Objects.requireNonNull(player, "player is null").GetUUID());
         if (TargetPlayer == null)
         {
             return false;
         }
         return TargetPlayer == player;
+    }
+
+    @Override
+    public boolean ContainsPlayer(UUID uuid)
+    {
+        return _players.containsKey(Objects.requireNonNull(uuid, "uuid is null"));
     }
 
     @Override

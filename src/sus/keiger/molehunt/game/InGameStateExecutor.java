@@ -7,12 +7,14 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.advancement.Advancement;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import sus.keiger.molehunt.game.event.*;
 import sus.keiger.molehunt.game.player.*;
 import sus.keiger.plugincommon.ITickable;
 import sus.keiger.plugincommon.PCMath;
 import sus.keiger.plugincommon.TickClock;
+import sus.keiger.plugincommon.entity.EntityFunctions;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -162,7 +164,8 @@ public class InGameStateExecutor extends GenericGameStateExecutor
     private void StartStatePlayer(IGamePlayer player)
     {
         _gameServices.GetScoreBoard().SetIsBoardEnabledForPlayer(player.GetServerPlayer(), true);
-        player.GetMaxHealth().SetBaseValue(_gameServices.GetGameSettings().GetPlayerHealthHalfHearts());
+        EntityFunctions.TrySetAttributeBaseValue(player.GetMCPlayer(), Attribute.MAX_HEALTH,
+                _gameServices.GetGameSettings().GetPlayerHealthHalfHearts());
         player.SetTargetState(GamePlayerState.InGame);
         player.GetMCPlayer().teleport(_gameServices.GetLocationProvider().GetRandomCenterLocation());
         _gameServices.GetScoreBoard().AddToTeam(player.GetServerPlayer());

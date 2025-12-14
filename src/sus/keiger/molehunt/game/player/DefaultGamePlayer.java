@@ -2,7 +2,6 @@ package sus.keiger.molehunt.game.player;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
@@ -10,12 +9,10 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
-import sus.keiger.molehunt.command.SpellCommand;
 import sus.keiger.molehunt.event.*;
 import sus.keiger.molehunt.game.GameTeamType;
 import sus.keiger.molehunt.game.IGameServices;
 import sus.keiger.molehunt.game.IGameTeam;
-import sus.keiger.molehunt.game.spell.*;
 import sus.keiger.molehunt.player.*;
 import sus.keiger.plugincommon.PCPluginEvent;
 import sus.keiger.plugincommon.player.actionbar.ActionbarMessage;
@@ -44,11 +41,6 @@ public class DefaultGamePlayer implements IGamePlayer
     private final double DEFAULT_BLOCK_REACH = 4.5d;
     private final double MOLE_PARTICLE_OFFSET_DELTA = 0.5d;
     private final float MOLE_PARTICLE_SIZE = 0.75f;
-    private final GameModifiableValue _maxHealth = new GameModifiableValue(DEFAULT_HEALTH);
-    private final GameModifiableValue _miningSpeed = new GameModifiableValue(DEFAULT_MINING_SPEED);
-    private final GameModifiableValue _attackSpeed = new GameModifiableValue(DEFAULT_ATTACK_SPEED);
-    private final GameModifiableValue _entityReach = new GameModifiableValue(DEFAULT_ENTITY_REACH);
-    private final GameModifiableValue _blockReach = new GameModifiableValue(DEFAULT_BLOCK_REACH);
 
 
 
@@ -207,36 +199,6 @@ public class DefaultGamePlayer implements IGamePlayer
     }
 
     @Override
-    public GameModifiableValue GetMaxHealth()
-    {
-        return _maxHealth;
-    }
-
-    @Override
-    public GameModifiableValue GetMiningSpeed()
-    {
-        return _miningSpeed;
-    }
-
-    @Override
-    public GameModifiableValue GetEntityReach()
-    {
-        return _entityReach;
-    }
-
-    @Override
-    public GameModifiableValue GetAttackSpeed()
-    {
-        return _attackSpeed;
-    }
-
-    @Override
-    public GameModifiableValue GetBlockReach()
-    {
-        return _blockReach;
-    }
-
-    @Override
     public PCPluginEvent<GamePlayerLifeChangeEvent> GetLifeChangeEvent()
     {
         return _lifeChangeEvent;
@@ -362,12 +324,6 @@ public class DefaultGamePlayer implements IGamePlayer
     @Override
     public void Tick()
     {
-        _blockReach.Tick();
-        _entityReach.Tick();
-        _attackSpeed.Tick();
-        _miningSpeed.Tick();
-        _maxHealth.Tick();
-
         if (_state == GamePlayerState.InGame)
         {
             _executor.Tick();

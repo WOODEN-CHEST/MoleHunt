@@ -4,7 +4,6 @@ import sus.keiger.molehunt.IWorldProvider;
 import sus.keiger.molehunt.event.IEventDispatcher;
 import sus.keiger.molehunt.game.player.GamePlayerCollection;
 import sus.keiger.molehunt.player.IServerPlayerCollection;
-import sus.keiger.molehunt.voicechat.IVoiceChatController;
 import sus.keiger.plugincommon.packet.IGamePacketController;
 
 import java.util.Objects;
@@ -13,7 +12,6 @@ public class DefaultGameServices implements IGameServices
 {
     // Private fields.
     private final IEventDispatcher _eventDispatcher;
-    private final IVoiceChatController _voiceChatController;
     private final IServerPlayerCollection _serverPlayers;
     private final IGamePacketController _packetController;
     private final GamePlayerCollection _gamePlayerCollection;
@@ -24,7 +22,6 @@ public class DefaultGameServices implements IGameServices
 
     // Constructors.
     public DefaultGameServices(IEventDispatcher eventDispatcher,
-                               IVoiceChatController voiceChatController,
                                IServerPlayerCollection serverPlayers,
                                IGamePacketController packetController,
                                GamePlayerCollection gamePlayerCollection,
@@ -33,7 +30,6 @@ public class DefaultGameServices implements IGameServices
                                MoleHuntSettings settings)
     {
         _eventDispatcher = Objects.requireNonNull(eventDispatcher, "eventDispatcher is null");
-        _voiceChatController = Objects.requireNonNull(voiceChatController, "voiceChatController is null");
         _serverPlayers = Objects.requireNonNull(serverPlayers, "serverPlayers is null");
         _packetController = Objects.requireNonNull(packetController, "packetController is null");
         _gamePlayerCollection = Objects.requireNonNull(gamePlayerCollection, "gamePlayerCollection is null");
@@ -48,12 +44,6 @@ public class DefaultGameServices implements IGameServices
     public IEventDispatcher GetEventDispatcher()
     {
         return _eventDispatcher;
-    }
-
-    @Override
-    public IVoiceChatController GetVoiceChatController()
-    {
-        return _voiceChatController;
     }
 
     @Override

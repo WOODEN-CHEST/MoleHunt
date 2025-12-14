@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="PluginCommonPacker">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../PluginCommonPacket/out/artifacts/PluginCommonPacker/PluginCommonPacker.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

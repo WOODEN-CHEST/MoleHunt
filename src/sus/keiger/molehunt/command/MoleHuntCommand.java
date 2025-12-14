@@ -11,6 +11,7 @@ import sus.keiger.plugincommon.command.*;
 import java.lang.reflect.Field;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 public class MoleHuntCommand
 {
@@ -41,10 +42,11 @@ public class MoleHuntCommand
 
 
     // Static methods.
-    public static ServerCommand CreateCommand(IPlayerStateController playerStateController,
+    public static ServerCommand CreateCommand(Logger logger,
+                                              IPlayerStateController playerStateController,
                                               MoleHuntSettings gameSettings)
     {
-        ServerCommand Command = new ServerCommand(LABEL, null);
+        ServerCommand Command = new ServerCommand(LABEL, null, logger);
 
         MoleHuntCommand Data = new MoleHuntCommand(playerStateController, gameSettings);
 
@@ -61,12 +63,12 @@ public class MoleHuntCommand
         if (property.getType().equals(int.class))
         {
             return new NumberNode(commandData -> data.SetProperty(property, commandData),
-                    null, KEY_VALUE, NumberNodeType.Integer);
+                    null, KEY_VALUE, NumberNodeType.Integer, false, false);
         }
         else if (property.getType().equals(double.class))
         {
             return new NumberNode(commandData -> data.SetProperty(property, commandData),
-                    null, KEY_VALUE, NumberNodeType.Double);
+                    null, KEY_VALUE, NumberNodeType.Double, false, false);
         }
         else if (property.getType().equals(boolean.class))
         {

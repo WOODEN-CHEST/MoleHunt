@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import sus.keiger.molehunt.event.IEventDispatcher;
+import sus.keiger.plugincommon.EmptyEvent;
 
 import java.util.Objects;
 
@@ -22,9 +23,31 @@ public class PlayerExistenceController implements IPlayerExistenceController
 
 
     // Private methods.
+    private void RemovePlayer(IServerPlayer player)
+    {
+        _players.RemovePlayer(player);
+        player.GetReferenceCountChangeEvent().Unsubscribe(this);
+    }
+
+    private void OnReferenceCountChangeEvent(PlayerReferenceCountChangeEvent event)
+    {
+        if (event.Player().GetReferenceCount() == 0)
+        {
+            RemovePlayer(event.Player());
+        }
+    }
+
     private void CreatePlayer(Player player)
     {
-        _players.AddPlayer(new MoleHuntPlayer(player));
+        if (_players.ContainsPlayer(player.getUniqueId()))
+        {
+            _players.GetPlayer(player.getUniqueId()).SetMCPlayer(player);
+            return;
+        }
+
+        MoleHuntPlayer CreatedPlayer = new MoleHuntPlayer(player);
+        _players.AddPlayer(CreatedPlayer);
+        CreatedPlayer.GetReferenceCountChangeEvent().Subscribe(this, this::OnReferenceCountChangeEvent);
     }
 
     private void OnPlayerJoinEvent(PlayerJoinEvent event)
@@ -37,9 +60,9 @@ public class PlayerExistenceController implements IPlayerExistenceController
     {
         event.quitMessage(null);
         IServerPlayer TargetPlayer = _players.GetPlayer(event.getPlayer());
-        if (TargetPlayer != null)
+        if ((TargetPlayer != null) && (TargetPlayer.GetReferenceCount() == 0))
         {
-            _players.RemovePlayer(TargetPlayer);
+            RemovePlayer(TargetPlayer);
         }
     }
 
